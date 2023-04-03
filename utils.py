@@ -38,19 +38,22 @@ class Zone:
 
 class Task: 
     def __init__(self, task_id, pick_point, drop_point, 
-                 robot=None, started=False, done=False):
+                 robot=None, started=False, picked=False, done=False):
         self.task_id = task_id
         self.pick_point = pick_point
         self.drop_point = drop_point
         self.assigned_robot = robot
         self.started = started
+        self.picked = picked
         self.done = done
+        self.start_time = None
+        self.end_time = None
     
     def __repr__(self):
         if self.assigned_robot == None:
             return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point})"
         else:
-            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot= {self.robot}, started={self.started}, done={self.done})"
+            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot={self.robot}, started={self.started}, picked={self.picked}, done={self.done})"
 
 class TaskList:
     def __init__(self, tasks=[]):
@@ -65,15 +68,12 @@ class TaskList:
         tasklist_rep += indent + self.tasks[i].__repr__() + " ])"
         return tasklist_rep
     
+    def add_task(self, task):
+        self.tasks.append(task)
+    
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix=""):
         for i in range(num_tasks):
             task_id = task_id_prefix + str(i)
             pick_point = random.choice(pick_points)
             drop_point = random.choice(drop_points)
             self.tasks.append(Task(task_id, pick_point, drop_point))
-
-# pick_points = [Point(0,1,1), Point(0,2,2), Point(0,3,3), Point(0,4,4)]
-# drop_points = [Point(1,1,1), Point(1,2,2), Point(1,3,3), Point(1,4,4)]
-# tl = TaskList()
-# tl.populate_randomly(pick_points, drop_points, 5, "task_")
-# print(tl)

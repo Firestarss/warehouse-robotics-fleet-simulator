@@ -11,6 +11,13 @@ class WarehouseMap:
         self.resolution = resolution # "pixels" per unit
         self.units = units
         self.occupancy_matrix = self.make_occupancy_matrix(self.resolution)
+        
+    def __repr__(self):
+        return (f"WarehouseMap(wh_zone={self.wh_zone}\n" + 
+                f"    blocked_areas={self.blocked_areas},\n" +
+                f"    pick_points={self.pick_points},\n" + 
+                f"    drop_points={self.drop_points},\n" + 
+                f"    resolution={self.resolution})")
 
     def point_to_pixel(self, point):
         """
@@ -122,42 +129,3 @@ class WarehouseMap:
         """
         pixel = self.point_to_pixel(point)
         return self.pixel_blocked(pixel)
-        
-    
-wh1_zone = Zone([0,200], [0,150], [0, 50])
-shelf_x_range = 20
-shelf_y_range = 50
-shelf_z_range = 40
-shelf_x0 = 10
-shelf_y0 = 20
-shelf_spacing = 20
-
-shelves = []
-x = shelf_x0
-y = shelf_y0
-z = 0
-while y < wh1_zone.y_lims[1]:
-    while x < wh1_zone.x_lims[1]:
-        shelves.append(Zone([x, x+shelf_x_range], 
-                            [y, y+shelf_y_range], 
-                            [z, shelf_z_range]))
-        x += shelf_x_range + shelf_spacing
-    y += shelf_y_range + shelf_spacing
-    x = shelf_x0
-
-pick_xs = [5, 35, 45, 75, 85, 115, 125, 155, 165, 195]
-pick_ys = [25, 35, 45, 55, 65, 95, 105, 115, 125, 135]
-pick_zs = [5, 15, 25, 35, 45]
-pick_points = []
-for k in pick_zs:
-    for j in pick_ys:
-        for i in pick_xs:
-            pick_points.append(Point(i,j,k))
-
-drop_xs = [5, 25, 45, 65, 85, 105, 125, 145, 165, 185]
-drop_points = []
-for i in drop_xs:
-    drop_points.append(Point(i, 5, 5))
-
-wh_map = WarehouseMap(wh1_zone,shelves,pick_points,drop_points,0.1, "ft")
-wh_map.show_occ_matrix(0)
