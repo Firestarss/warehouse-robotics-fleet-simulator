@@ -19,6 +19,13 @@ class Robot:
     def __repr__(self):
         return f"Robot('{self.robot_id}', {self.pos})"
     
+    def __lt__(self, other):
+        # So that robots can be sorted by path length - this is untested, comment this out if behavior is weird. Inequality might be flipped.
+        return self.path_len() < other.path_len()
+    
+    def path_len(self):
+        return len(list(chain(*self.path)))
+        
     def lookup_pos(self, time_step_num):
         """
         Get the position of this robot at a given time step (int).
@@ -115,11 +122,17 @@ class Fleet:
         else:
             return list(self.robots[robot_type].values())
 
+    def longest_path_len(self, robot_type="All"):
+        robot_list = self.get_robots_as_list(robot_type)
+        path_lens = [bot.path_len() for bot in robot_list]
+        return max(path_lens)
+        
+    
     def closest_robots(self, point, timestep, robot_type="Drone"):
         """
         Returns a list of the robots closest to a given point at a given time.
         """
-        robot_list = self.get_robots_as_list()
+        robot_list = self.get_robots_as_list(robot_type)
         dists = []
         bots_dists = []
         for bot in robot_list:
@@ -134,13 +147,14 @@ class Fleet:
 
     def closest_robots_at_end_path(self, point, robot_type="Drone"):
         """
-        Returns the robot closest to a given point at a given time.
+        Returns a list of the robots closest to the given point when at the end of their paths. Robots that finish with their currently planned paths sooner are considered to be that much "closer."
         """
         robot_list = self.get_robots_as_list()
         dists = []
         bots_dists = []
+        time = self.longest_path_len(robot_type)
         for bot in robot_list:
-            (bot_pos, r_steps) = bot.lookup_pos_and_remaining_path_len(-1)
+            (bot_pos, r_steps) = bot.lookup_pos_and_remaining_path_len(time)
             dist = manhattan_dist(point, bot_pos)+r_steps
             dists.append(dist)
             bots_dists.append([bot, dist])
