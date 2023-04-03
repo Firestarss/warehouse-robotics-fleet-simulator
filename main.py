@@ -1,6 +1,8 @@
 from utils import *
 from warehouse_map import *
 from robot_fleet import *
+from path_planning import *
+from task_allocation import *
 
 wh1_zone = Zone([0,200], [0,150], [0, 50])
 shelf_x_range = 20
