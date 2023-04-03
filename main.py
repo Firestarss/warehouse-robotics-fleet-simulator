@@ -49,4 +49,8 @@ fleet = Fleet()
 fleet.populate_by_composition([["Drone", 5], ["AMR", 5]], wh1_pick_points)
 print(fleet)
 
+print(fleet.get_robots_as_list("Drone"))
+
+print(fleet.closest_robots(Point(40,40,5), 0, "Drone"))
+
 

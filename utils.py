@@ -1,4 +1,5 @@
 import random
+import math
 
 class Point:
     def __init__(self, x, y, z):
@@ -77,3 +78,15 @@ class TaskList:
             pick_point = random.choice(pick_points)
             drop_point = random.choice(drop_points)
             self.tasks.append(Task(task_id, pick_point, drop_point))
+
+def manhattan_dist(point1, point2):
+    dx = abs(point1.x - point2.x)
+    dy = abs(point1.y - point2.y)
+    dz = abs(point1.z - point2.z)
+    return dx + dy + dz
+
+def diag_dist(point1, point2):
+    dx = abs(point1.x - point2.x)
+    dy = abs(point1.y - point2.y)
+    dz = abs(point1.z - point2.z)
+    return math.sqrt(dx + dy + dz)

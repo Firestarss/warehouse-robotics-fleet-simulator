@@ -24,7 +24,19 @@ class Robot:
         Get the position of this robot at a given time step (int).
         """
         unnested_path = list(chain(*self.path))
+        if time_step_num >= len(unnested_path):
+            return unnested_path[-1]
         return unnested_path[time_step_num]
+    
+    def lookup_pos_and_remaining_path_len(self, time_step_num):
+        """
+        Get the position of the robot and the given time step and the number of steps remaining on it's path. If the path ended before the given timestep, give the number of steps overshot as a negative number.
+        """
+        unnested_path = list(chain(*self.path))
+        path_len = len(unnested_path)
+        if time_step_num >= path_len:
+            return (unnested_path[-1], path_len-time_step_num-1)
+        return (unnested_path[time_step_num], path_len-time_step_num-1)
     
     def add_task(self, task):
         task.assigned_robot = self
@@ -93,3 +105,46 @@ class Fleet:
                     bots[robot_id] = Robot(robot_id, start_points[robot_num])
                     robot_num += 1
                 self.robots["AMR"] = bots
+                
+    def get_robots_as_list(self, robot_type="All"):
+        if robot_type == "All":
+            robot_list = []
+            for robot_type in self.robots:
+                robot_list.extend(list(self.robots[robot_type].values()))
+            return robot_list
+        else:
+            return list(self.robots[robot_type].values())
+
+    def closest_robots(self, point, timestep, robot_type="Drone"):
+        """
+        Returns a list of the robots closest to a given point at a given time.
+        """
+        robot_list = self.get_robots_as_list()
+        dists = []
+        bots_dists = []
+        for bot in robot_list:
+            bot_pos = bot.lookup_pos(timestep)
+            dist = manhattan_dist(point, bot_pos)
+            dists.append(dist)
+            bots_dists.append([bot, dist])
+        min_dist = min(dists)
+        closest_bots = [bot_dist[0] for bot_dist in bots_dists 
+                        if bot_dist[1]==min_dist]
+        return closest_bots
+
+    def closest_robots_at_end_path(self, point, robot_type="Drone"):
+        """
+        Returns the robot closest to a given point at a given time.
+        """
+        robot_list = self.get_robots_as_list()
+        dists = []
+        bots_dists = []
+        for bot in robot_list:
+            (bot_pos, r_steps) = bot.lookup_pos_and_remaining_path_len(-1)
+            dist = manhattan_dist(point, bot_pos)+r_steps
+            dists.append(dist)
+            bots_dists.append([bot, dist])
+        min_dist = min(dists)
+        closest_bots = [bot_dist[0] for bot_dist in bots_dists 
+                        if bot_dist[1]==min_dist]
+        return closest_bots
