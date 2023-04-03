@@ -20,6 +20,9 @@ class Robot:
         return f"Robot('{self.robot_id}', {self.pos})"
     
     def lookup_pos(self, time_step_num):
+        """
+        Get the position of this robot at a given time step (int).
+        """
         unnested_path = list(chain(*self.path))
         return unnested_path[time_step_num]
     
