@@ -1,14 +1,34 @@
 import random
 import math
 
-class Point:
+class Location:
     def __init__(self, x, y, z):
         self.x = x
         self.y = y
         self.z = z
-        
+
+    def __repr__(self):
+        return f"Location({self.x},{self.y},{self.z})"
+    
+    def dist_manhattan(self, point2):
+        dx = abs(self.x - point2.x)
+        dy = abs(self.y - point2.y)
+        dz = abs(self.z - point2.z)
+        return dx + dy + dz
+
+    def dist_diag(self, point2):
+        dx = abs(self.x - point2.x)
+        dy = abs(self.y - point2.y)
+        dz = abs(self.z - point2.z)
+        return math.sqrt(dx + dy + dz)
+
+class Point(Location):
     def __repr__(self):
         return f"Point({self.x},{self.y},{self.z})"
+
+class Cell(Location):
+    def __repr__(self):
+        return f"Cell({self.x},{self.y},{self.z})"
 
 class Zone:
     def __init__(self, x_lims, y_lims, z_lims, zone_id=None):
@@ -17,8 +37,8 @@ class Zone:
         self.z_lims = z_lims
         self.zone_id = zone_id
 
-        self.corners = [Point(x_lims[0], y_lims[0], z_lims[0]),
-                        Point(x_lims[1], y_lims[1], z_lims[1])]
+        self.corners = [Location(x_lims[0], y_lims[0], z_lims[0]),
+                        Location(x_lims[1], y_lims[1], z_lims[1])]
 
     def __repr__(self):
         return f"Zone({self.x_lims}, {self.y_lims}, {self.z_lims})"
@@ -36,6 +56,14 @@ class Zone:
         return self.y_lims[1] - self.y_lims[0]
     def z_range(self):
         return self.z_lims[1] - self.z_lims[0]
+
+class PointZone(Zone):
+    def __repr__(self):
+        return f"PointZone({self.x_lims}, {self.y_lims}, {self.z_lims})"
+
+class CellZone(Zone):
+    def __repr__(self):
+        return f"CellZone({self.x_lims}, {self.y_lims}, {self.z_lims})"
 
 class Task: 
     def __init__(self, task_id, pick_point, drop_point, 
@@ -78,15 +106,3 @@ class TaskList:
             pick_point = random.choice(pick_points)
             drop_point = random.choice(drop_points)
             self.tasks.append(Task(task_id, pick_point, drop_point))
-
-def manhattan_dist(point1, point2):
-    dx = abs(point1.x - point2.x)
-    dy = abs(point1.y - point2.y)
-    dz = abs(point1.z - point2.z)
-    return dx + dy + dz
-
-def diag_dist(point1, point2):
-    dx = abs(point1.x - point2.x)
-    dy = abs(point1.y - point2.y)
-    dz = abs(point1.z - point2.z)
-    return math.sqrt(dx + dy + dz)

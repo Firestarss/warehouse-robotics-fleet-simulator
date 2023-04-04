@@ -84,7 +84,7 @@ class Fleet:
             for bot_id in self.robots[key]:
                 return_str += ("        '" + bot_id + "': " + 
                                str(self.robots[key][bot_id]) + ",\n")
-            return_str = return_str[:-1]
+            return_str = return_str[:-2]
             return_str += " }\n"
         return_str += "})"
         return return_str
@@ -137,7 +137,7 @@ class Fleet:
         bots_dists = []
         for bot in robot_list:
             bot_pos = bot.lookup_pos(timestep)
-            dist = manhattan_dist(point, bot_pos)
+            dist = point.dist_manhattan(bot_pos)
             dists.append(dist)
             bots_dists.append([bot, dist])
         min_dist = min(dists)
@@ -147,7 +147,9 @@ class Fleet:
 
     def closest_robots_at_end_path(self, point, robot_type="Drone"):
         """
-        Returns a list of the robots closest to the given point when at the end of their paths. Robots that finish with their currently planned paths sooner are considered to be that much "closer."
+        Returns a list of the robots closest to the given point when at the end
+        of their paths. Robots that finish with their currently planned paths
+        sooner are considered to be that much "closer."
         """
         robot_list = self.get_robots_as_list()
         dists = []
@@ -155,7 +157,7 @@ class Fleet:
         time = self.longest_path_len(robot_type)
         for bot in robot_list:
             (bot_pos, r_steps) = bot.lookup_pos_and_remaining_path_len(time)
-            dist = manhattan_dist(point, bot_pos)+r_steps
+            dist = dist = point.dist_manhattan(bot_pos)+r_steps
             dists.append(dist)
             bots_dists.append([bot, dist])
         min_dist = min(dists)

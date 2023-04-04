@@ -8,7 +8,7 @@ class WarehouseMap:
         self.blocked_areas = blocked_areas
         self.pick_points = pick_points
         self.drop_points = drop_points
-        self.resolution = resolution # "pixels" per unit
+        self.resolution = resolution # "cells" per unit
         self.units = units
         self.occupancy_matrix = self.make_occupancy_matrix(self.resolution)
         
@@ -19,49 +19,49 @@ class WarehouseMap:
                 f"    drop_points={self.drop_points},\n" + 
                 f"    resolution={self.resolution})")
 
-    def point_to_pixel(self, point):
+    def point_to_cell(self, point):
         """
-        Converts Point from x-y-z in feet to the row-col-layer of the closest pixel in the occupancy matrix.
+        Converts Point from x-y-z in feet to the row-col-layer of the closest cell in the occupancy matrix.
 
         Args:
             point (Point): point to be converted
 
         Returns:
-            Point: pixel where pixel.x is row, pixel.y is col, pixel.z is layer
+            Point: cell where cell.x is row, cell.y is col, cell.z is layer
         """
-        pix_x = round((point.x - self.wh_zone.x_lims[0]) * self.resolution)
-        pix_y = round((point.y - self.wh_zone.y_lims[0]) * self.resolution)
-        pix_z = round((point.z - self.wh_zone.z_lims[0]) * self.resolution)
-        return Point(pix_x, pix_y, pix_z)
+        cell_x = round((point.x - self.wh_zone.x_lims[0]) * self.resolution)
+        cell_y = round((point.y - self.wh_zone.y_lims[0]) * self.resolution)
+        cell_z = round((point.z - self.wh_zone.z_lims[0]) * self.resolution)
+        return Cell(cell_x, cell_y, cell_z)
 
-    def pixel_to_point(self, pixel):
+    def cell_to_point(self, cell):
         """
         Converts Point from row-col-layer to x-y-z in feet.
 
         Args:
-            pixel (Point): pixel to be converted
+            cell (Point): cell to be converted
 
         Returns:
             Point: point where x, y, and z are in feet
         """
-        point_x = pixel.x/self.resolution + self.wh_zone.x_lims[0]
-        point_y = pixel.y/self.resolution + self.wh_zone.y_lims[0]
-        point_z = pixel.z/self.resolution + self.wh_zone.z_lims[0]
+        point_x = cell.x/self.resolution + self.wh_zone.x_lims[0]
+        point_y = cell.y/self.resolution + self.wh_zone.y_lims[0]
+        point_z = cell.z/self.resolution + self.wh_zone.z_lims[0]
         return Point(point_x, point_y, point_z)
 
-    def zone_points_to_pixels(self, point_zone):
-        pix_c1 = self.point_to_pixel(point_zone.corners[0])
-        pix_c2 = self.point_to_pixel(point_zone.corners[1])
-        return Zone([pix_c1.x, pix_c2.x], 
-                    [pix_c1.y, pix_c2.y], 
-                    [pix_c1.z, pix_c2.z])
+    def zone_points_to_cells(self, point_zone):
+        cell_c1 = self.point_to_cell(point_zone.corners[0])
+        cell_c2 = self.point_to_cell(point_zone.corners[1])
+        return CellZone([cell_c1.x, cell_c2.x], 
+                        [cell_c1.y, cell_c2.y], 
+                        [cell_c1.z, cell_c2.z])
 
-    def zone_pixels_to_points(self, pix_zone):
-        point_c1 = self.pixel_to_point(pix_zone.corners[0])
-        point_c1 = self.pixel_to_point(pix_zone.corners[1])
-        return Zone([point_c1.x, point_c2.x], 
-                    [point_c1.y, point_c2.y], 
-                    [point_c1.z, point_c2.z])
+    def zone_cells_to_points(self, cell_zone):
+        point_c1 = self.cell_to_point(cell_zone.corners[0])
+        point_c2 = self.cell_to_point(cell_zone.corners[1])
+        return PointZone([point_c1.x, point_c2.x], 
+                         [point_c1.y, point_c2.y], 
+                         [point_c1.z, point_c2.z])
 
     def make_occupancy_matrix(self, resolution):
         # TODO incoperate range not being an exact multiple of resolution
@@ -70,10 +70,10 @@ class WarehouseMap:
         matrix_z_range = int(self.wh_zone.z_range() * resolution)
         occ_matrix = np.full((matrix_x_range, matrix_y_range, matrix_z_range), False, dtype=bool)
         for zone in self.blocked_areas:
-            zone_pix = self.zone_points_to_pixels(zone)
-            occ_matrix[zone_pix.x_lims[0]:zone_pix.x_lims[1], 
-                       zone_pix.y_lims[0]:zone_pix.y_lims[1], 
-                       zone_pix.z_lims[0]:zone_pix.z_lims[1]] = True
+            zone_cell = self.zone_points_to_cells(zone)
+            occ_matrix[zone_cell.x_lims[0]:zone_cell.x_lims[1], 
+                       zone_cell.y_lims[0]:zone_cell.y_lims[1], 
+                       zone_cell.z_lims[0]:zone_cell.z_lims[1]] = True
         return occ_matrix
 
     def get_occ_matrix_layer(self, layer_num):
@@ -109,14 +109,14 @@ class WarehouseMap:
         for l in lines[1:]:
             print(l)
             
-    def pixel_blocked(self, pixel):
+    def cell_blocked(self, cell):
         """
-        Returns True if pixel is in an obstacle and False if not.
+        Returns True if cell is in an obstacle and False if not.
 
         Args:
-            pixel (Point): pixel to check
+            cell (Point): cell to check
         """
-        if self.occupancy_matrix[pixel.x, pixel.y, pixel.z]:
+        if self.occupancy_matrix[cell.x, cell.y, cell.z]:
             return True
         return False
     
@@ -127,5 +127,5 @@ class WarehouseMap:
         Args:
             point (Point): point to check
         """
-        pixel = self.point_to_pixel(point)
-        return self.pixel_blocked(pixel)
+        cell = self.point_to_cell(point)
+        return self.cell_blocked(cell)
