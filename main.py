@@ -51,10 +51,10 @@ fleet = Fleet()
 fleet.populate_by_composition([["Drone", 5], ["AMR", 5]], wh1_pick_points)
 print(fleet)
 
-print(fleet.get_robots_as_list("Drone"))
+# print(fleet.get_robots_as_list("Drone"))
 
 # fleet.robots["Drone"]["D0"].add_paths([[Point(10,10,10)]])
 # print(fleet.robots["Drone"]["D0"].path)
-print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
+# print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
 
-
+task_split = TaskAllocator(rand_task_list, fleet)
