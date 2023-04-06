@@ -59,16 +59,16 @@ class Task:
 class TaskList:
     def __init__(self, tasks=[]):
         self.tasks = tasks
-    
+
     def __repr__(self):
         tasklist_rep = "TaskList([ "
         indent = " "*len(tasklist_rep)
-        tasklist_rep += self.tasks[0].__repr__() + ",\n"
-        for i in range(1, len(self.tasks)-1):
-            tasklist_rep += indent + self.tasks[i].__repr__() + ",\n"
-        tasklist_rep += indent + self.tasks[i].__repr__() + " ])"
+        tasklist_rep += self.tasks[0].__repr__()
+        for i in range(1,len(self.tasks)):
+            tasklist_rep += ",\n" + indent + self.tasks[i].__repr__()
+        tasklist_rep += " ])"
         return tasklist_rep
-    
+        
     def add_task(self, task):
         self.tasks.append(task)
     
