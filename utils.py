@@ -82,25 +82,34 @@ class Task:
         if self.assigned_robot == None:
             return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point})"
         else:
-            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot={self.robot}, started={self.started}, picked={self.picked}, done={self.done})"
+            if self.assigned_robot == None:
+                robot = "None"
+            else: robot = self.assigned_robot.robot_id
+            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot={robot}, started={self.started}, picked={self.picked}, done={self.done})"
 
 class TaskList:
-    def __init__(self, tasks=[]):
-        self.tasks = tasks
+    def __init__(self, tasks=None):
+        if tasks == None:
+            self.tasks = []
+        else: self.tasks = tasks
+        
     
     def __repr__(self):
+        if len(self.tasks) == 0:
+            return "TaskList([])"
         tasklist_rep = "TaskList([ "
         indent = " "*len(tasklist_rep)
-        tasklist_rep += self.tasks[0].__repr__() + ",\n"
-        for i in range(1, len(self.tasks)-1):
-            tasklist_rep += indent + self.tasks[i].__repr__() + ",\n"
-        tasklist_rep += indent + self.tasks[i].__repr__() + " ])"
+        tasklist_rep += self.tasks[0].__repr__()
+        for i in range(1,len(self.tasks)):
+            tasklist_rep += ",\n" + indent + self.tasks[i].__repr__()
+        tasklist_rep += " ])"
         return tasklist_rep
     
     def add_task(self, task):
         self.tasks.append(task)
     
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix=""):
+        self.tasks = []
         for i in range(num_tasks):
             task_id = task_id_prefix + str(i)
             pick_point = random.choice(pick_points)

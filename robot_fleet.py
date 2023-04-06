@@ -20,7 +20,8 @@ class Robot:
         self.curr_path_idx: [0,0]
 
     def __repr__(self):
-        return f"Robot('{self.robot_id}', {self.pos})"
+        # return f"Robot('{self.robot_id}', {self.pos})"
+        return f"Robot('{self.robot_id}', {self.pos}, {self.task_list})"
 
     def __lt__(self, other):
         # So that robots can be sorted by path length - this is untested, comment this out if behavior is weird. Inequality might be flipped.
@@ -50,7 +51,7 @@ class Robot:
 
     def add_task(self, task):
         task.assigned_robot = self
-        self.task_list.add_task
+        self.task_list.add_task(task)
 
     def add_paths(self, additional_paths_list):
         self.path.extend(additional_paths_list)

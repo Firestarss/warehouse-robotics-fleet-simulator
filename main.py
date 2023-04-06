@@ -55,6 +55,9 @@ print(fleet.get_robots_as_list("Drone"))
 
 # fleet.robots["Drone"]["D0"].add_paths([[Point(10,10,10)]])
 # print(fleet.robots["Drone"]["D0"].path)
-print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
+# print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
 
+fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
+
+print(fleet)
 
