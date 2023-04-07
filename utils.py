@@ -54,15 +54,19 @@ class Task:
         if self.assigned_robot == None:
             return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point})"
         else:
-            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot={self.robot}, started={self.started}, picked={self.picked}, done={self.done})"
+            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot={self.assigned_robot}, started={self.started}, picked={self.picked}, done={self.done})"
 
 class TaskList:
     def __init__(self, tasks=[]):
         self.tasks = tasks
+        self.center = None
+        self.robot = None
 
     def __repr__(self):
         tasklist_rep = "TaskList([ "
         indent = " "*len(tasklist_rep)
+        if self.tasks == []:
+            return "No Tasks"
         tasklist_rep += self.tasks[0].__repr__()
         for i in range(1,len(self.tasks)):
             tasklist_rep += ",\n" + indent + self.tasks[i].__repr__()
@@ -90,3 +94,10 @@ def diag_dist(point1, point2):
     dy = abs(point1.y - point2.y)
     dz = abs(point1.z - point2.z)
     return math.sqrt(dx + dy + dz)
+
+def ccw(A,B,C):
+    return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x)
+    
+def intersect(A,B,C,D):
+    # Return true if line segments AB and CD intersect
+    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)

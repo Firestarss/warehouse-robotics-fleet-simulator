@@ -12,7 +12,7 @@ class Robot:
     def __init__(self, robot_id, pos):
         self.robot_id = robot_id
         self.pos = pos
-        self.task_list = TaskList()
+        self.task_list = TaskList(tasks=[])
         self.path = [[pos]]
         self.curr_path_idx = [0,0]
         
@@ -47,16 +47,16 @@ class Robot:
     
     def add_task(self, task):
         task.assigned_robot = self
-        self.task_list.add_task
+        self.task_list.add_task(task)
     
     def add_paths(self, additional_paths_list):
         self.path.extend(additional_paths_list)
     
     def update(self):
         curr_path_idx[1] += 1
-        if curr_path_idx[1] == len(path[curr_path_idx[0]]):
+        if curr_path_idx[1] == len(self.path[curr_path_idx[0]]):
             curr_path_idx = [curr_path_idx[0]+1, 0]
-        self.pos = path[curr_path_idx[0],curr_path_idx[1]]
+        self.pos = self.path[curr_path_idx[0],curr_path_idx[1]]
         
         
 class Drone(Robot):
@@ -81,9 +81,9 @@ class Fleet:
         return_str = "Fleet({\n"
         for key in self.robots:
             return_str += "    '" + str(key) + "': {\n"
-            for bot_id in self.robots[key]:
+            for bot_id in self.robots.keys():
                 return_str += ("        '" + bot_id + "': " + 
-                               str(self.robots[key][bot_id]) + ",\n")
+                               str(self.robots[bot_id]) + ",\n")
             return_str = return_str[:-1]
             return_str += " }\n"
         return_str += "})"
@@ -127,7 +127,6 @@ class Fleet:
         path_lens = [bot.path_len() for bot in robot_list]
         return max(path_lens)
         
-    
     def closest_robots(self, point, timestep, robot_type="Drone"):
         """
         Returns a list of the robots closest to a given point at a given time.
@@ -149,7 +148,7 @@ class Fleet:
         """
         Returns a list of the robots closest to the given point when at the end of their paths. Robots that finish with their currently planned paths sooner are considered to be that much "closer."
         """
-        robot_list = self.get_robots_as_list()
+        robot_list = self.get_robots_as_list(robot_type=robot_type)
         dists = []
         bots_dists = []
         time = self.longest_path_len(robot_type)
