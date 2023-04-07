@@ -17,7 +17,7 @@ class Robot:
         self.pos = pos
         self.task_list = TaskList()
         self.path = [[pos]]
-        self.curr_path_idx: [0,0]
+        self.curr_path_idx = [0,0]
 
     def __repr__(self):
         # return f"Robot('{self.robot_id}', {self.pos})"
@@ -58,9 +58,9 @@ class Robot:
 
     def update(self):
         curr_path_idx[1] += 1
-        if curr_path_idx[1] == len(path[curr_path_idx[0]]):
+        if curr_path_idx[1] == len(self.path[curr_path_idx[0]]):
             curr_path_idx = [curr_path_idx[0]+1, 0]
-        self.pos = path[curr_path_idx[0],curr_path_idx[1]]
+        self.pos = self.path[curr_path_idx[0],curr_path_idx[1]]
 
 
 class Drone(Robot):
