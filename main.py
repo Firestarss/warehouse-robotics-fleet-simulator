@@ -3,6 +3,7 @@ from warehouse_map import *
 from robot_fleet import *
 from path_planning import *
 from task_allocation import *
+from visualization import *
 
 wh1_zone = Zone([0,200], [0,150], [0, 50])
 shelf_x_range = 20
@@ -59,5 +60,5 @@ print(fleet.get_robots_as_list("Drone"))
 
 fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 
-print(fleet)
+visualizer = Visualizer(wh1_map, fleet, rand_task_list)
 

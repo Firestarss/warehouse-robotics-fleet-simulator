@@ -10,6 +10,9 @@ class Location:
     def __repr__(self):
         return f"Location({self.x},{self.y},{self.z})"
     
+    def as_str(self):
+        return f"({self.x},{self.y},{self.z})"
+    
     def dist_manhattan(self, point2):
         dx = abs(self.x - point2.x)
         dy = abs(self.y - point2.y)
