@@ -13,16 +13,14 @@ from sklearn.cluster import KMeans
 """     
 
 class Region:
-    def __init__(self, id, labels, center):
+    def __init__(self, id, center, task_list, fleet):
         self.id = id
-        self.labels = labels
         self.center = center
-        self.task_list = TaskList(tasks=[])
-        self.fleet = None
+        self.task_list = task_list
+        self.fleet = fleet
 
     def __repr__(self):
         return (f"Region(id={self.id}\n" + 
-                f"    labels={self.labels},\n" +
                 f"    center={self.center},\n" +
                 f"    task_list={self.task_list},\n" +
                 f"    fleet={self.fleet})")
@@ -41,14 +39,11 @@ class TaskAllocator:
 
         self.create_Regions()
 
-        self.assign_Tasks2Regions()
-
         self.assign_AMRs2Regions()
 
         self.assign_Drones2Regions()
 
-        self.assign_Tasks2Agents()
-
+        # self.assign_Tasks2Agents()
 
         # [print(r) for r in self.regions]
 
@@ -59,81 +54,127 @@ class TaskAllocator:
                 f"    pick_points={self.pick_points})")
     
     def create_Regions(self):
-        # kmeans group using xy coordinates -> do not care about z height for grouping
+        """
+        Create regions equal to the number ground agents
+        Each region is initialized with an id, 
+        """
+        # group using xy coordinates -> do not care about z height for grouping
         flattened_pick_points = np.asarray([[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks])
-
-        # Use if weighting is desired between
+        
+        # Use example if weighting is desired between clusters and tasks
         # kmeans = KMeans(n_clusters=n_ground_agents, random_state=0).fit(w_vector_array[:,0:2], sample_weight = w_vector_array[:,2])
-        kmeans = KMeans(
+        KM_tasks = KMeans(
                     n_clusters=len(self.ground_agents),
                     random_state=0,
                     n_init='auto'
                 ).fit(flattened_pick_points)
         
-        for i in range(len(self.ground_agents)):
-            labels = (kmeans.labels_ == i)
+        for i, agent in enumerate(self.ground_agents):
+            # Cast the cluster centers as 3D Points with height 5
+            center = Point(int(KM_tasks.cluster_centers_[i][0]), int(KM_tasks.cluster_centers_[i][1]), 5)
 
-            center = Point(int(kmeans.cluster_centers_[i][0]), int(kmeans.cluster_centers_[i][1]), 5)
+            # Split the total task list into regional task lists using kmeans labels
+            region_tasks =  [task for k, task in enumerate(self.task_list.tasks) if (KM_tasks.labels_[k] == i)]
 
-            self.regions.append(Region(i, labels, center))
-    
-    def assign_Tasks2Regions(self):
-        """
-        Clusters tasks into a regions
-        """
-        for r in self.regions:
-            for i, task in enumerate(self.task_list.tasks):
-                if r.labels[i]:
-                    r.task_list.add_task(task)
+            # Initialize each regional fleet with a ground agent, agents are re-allocated in assign_AMRs2Regions()
+            region_robots = {"AMR":{agent.robot_id:agent}, "Drone":{}}
+
+            # Create new region
+            r = Region(
+                    id=f"R{i}",
+                    center=center,
+                    task_list=TaskList(region_tasks),
+                    fleet=Fleet(region_robots)
+                )
+            
+            # Add to region list
+            self.regions.append(r)            
 
     def assign_AMRs2Regions(self):
         """
         Assign AMR's to Regions by checking if paths to their destinations overlap
-        Switch any overlapping paths to get an optimized allocation
+        Switch any overlapping paths to get an approximated optimal allocation
         """
-        # Initially assign ground agents (Not Optimized)
-        for i, region in enumerate(self.regions):
-            region.fleet = Fleet(robots={"AMR":self.ground_agents[i], "Drone":{}})
 
-        print(f"AMR TOTAL ASSIGNMENT COST PRIOR = {sum([manhattan_dist(r.center, r.fleet.robots['AMR'].pos) for r in self.regions])}")
+        print(f"AMR TOTAL ASSIGNMENT COST PRIOR = {sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])}")
 
         for i in range(len(self.regions)):
-            k = 0
+            k = 0            
             while k < len(self.regions):
+                # Must be converted to list to index the first value
+                amr1 = list(self.regions[i].fleet.robots["AMR"].values())[0]
+                amr2 = list(self.regions[k].fleet.robots["AMR"].values())[0]
 
-                line1 = [self.regions[i].center, self.regions[i].fleet.robots["AMR"].pos]
-                line2 = [self.regions[k].center, self.regions[k].fleet.robots["AMR"].pos]
+                # AMR -> region centers: start and end points
+                path1 = [amr1.pos, self.regions[i].center]
+                path2 = [amr2.pos, self.regions[k].center]
 
-                if self.paths_intersect(line1, line2):
-                    # If region-to-agent paths intersect, swap assigned agents
-                    agent1 = self.regions[i].fleet.robots["AMR"]
-                    agent2 = self.regions[k].fleet.robots["AMR"]
-                    self.regions[i].fleet.robots["AMR"] = agent2
-                    self.regions[k].fleet.robots["AMR"] = agent1
+                # If region-to-agent paths intersect, swap assigned agents
+                if intersect(path1[0], path1[1], path2[0], path2[1]):
+                    self.regions[i].fleet.robots["AMR"] = {amr2.robot_id:amr2}
+                    self.regions[k].fleet.robots["AMR"] = {amr1.robot_id:amr1}
                     
+                    # Restart nested loop for every intersection to check back over previous paths
                     k = 0
                 else:
                     k += 1
 
-        print(f"AMR TOTAL ASSIGNMENT COST POST = {sum([manhattan_dist(r.center, r.fleet.robots['AMR'].pos) for r in self.regions])}")
-
+        print(f"AMR TOTAL ASSIGNMENT COST POST = {sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])}")
+        
     def assign_Drones2Regions(self):
+        """
+        Assign Drones to regions by balancing the drone_per_task metric of each region
+        DPT = Drones per task
+        """
+        # Idle drones -> not currently assigned to a region
+        d_idle = self.drone_agents
 
-        # Assign each drone to closest region
-        # Based on target drone capacity, re-shuffle
+        # Assign every drone to a region
+        while len(d_idle) > 0:
+            for r in self.regions:
+                if d_idle:
+                    # Closest drone by manhattan distance to region centroid
+                    closest_drone_index = min(range(len(d_idle)), key=lambda x: manhattan_dist(r.center, d_idle[x].pos))
 
-        for agent in self.drone_agents:
-            start_region = min(self.regions, key=lambda x: manhattan_dist(agent.pos, x.center))
-            start_region.fleet.robots["Drone"][agent.robot_id] = agent
-            print(start_region.fleet.robots["Drone"])
+                    # Add closest drone to fleet and remove from the drone list
+                    r.fleet.add(d_idle.pop(closest_drone_index))
+
+        # # Tasks Per Drone of each region if solution is optimal
+        TPD_avg = len(self.task_list.tasks) / len(self.fleet.robots["Drone"])
+        print("Tasks per drone avg = ", TPD_avg)
+
+        # If a group is oversized, shift one robot to the nearest undersized group
+        TPD_std = None
+        last_std = 0
+        while TPD_std != last_std:
+            last_std = TPD_std
+
+            TPD_std = sum([(len(t.task_list.tasks) / len(t.fleet.robots['Drone']) - TPD_avg)**2 for t in self.regions])/len(self.regions)
             
+            print(f"Tasks per drone std: {TPD_std}")
 
+            for r in self.regions:                
+                # Tasks per drone for this region
+                TPD_rgn = len(r.task_list.tasks) / len(r.fleet.robots["Drone"])
 
-        # m = sum([len(r.task_list.tasks) for r in self.regions])
-        # for region in self.regions:
-        #     target = len(region.task_list.tasks)/m * len(self.fleet.robots["Drone"])
+                # Donate a drone if region has too many. CANNOT DONATE LAST DRONE
+                if TPD_rgn < TPD_avg and len(r.fleet.robots['Drone']) > 1:
+                    # Recalculate all regions that still need more drones
+                    undersized_regions = [region for region in self.regions if len(region.task_list.tasks) / len(region.fleet.robots["Drone"]) > TPD_avg]
 
-            # region
+                    # closest undersized region
+                    r2 = min(undersized_regions, key=lambda x: manhattan_dist(r.center, x.center))
+
+                    # closest drone in this fleet to centroid of next region
+                    closest_drone = min(r.fleet.robots["Drone"].values(), key=lambda x: manhattan_dist(x.pos, r2.center))
+
+                    # Move drone from one region's fleet to the other
+                    r.fleet.remove(closest_drone)
+                    r2.fleet.add(closest_drone)
+                        
+
+        print(self.regions)
+
 
     def assign_Tasks2Agents(self):
         # Repeat AMR line solving allocation
@@ -141,21 +182,6 @@ class TaskAllocator:
         # for task in self.regions[i].task_list.tasks:
         #     self.regions[i].fleet.robots["AMR"].add_task(task)
         pass
-
-    def paths_intersect(self, path1, path2):
-        """
-        Function to check whether 2 paths will intersect
-        path1: start Point, end Point
-        path2: start Point, end Point
-        """
-        if path1 != path2:
-            return intersect(path1[0], path1[1], path2[0], path2[1])
-
-        return False
-
-
-        
-
 
 
 
@@ -166,4 +192,3 @@ class TaskAllocator:
             # TODO: Assign Tasks to AMR
 
             # TODO: Assign Tasks to Drone
-

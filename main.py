@@ -48,8 +48,8 @@ rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 10)
 print(rand_task_list)
 
 fleet = Fleet()
-fleet.populate_by_composition([["Drone", 15], ["AMR", 5]], wh1_pick_points)
-# print(fleet)
+fleet.populate_by_composition([["Drone", 22], ["AMR", 5]], wh1_pick_points)
+print(fleet)
 
 # print(fleet.get_robots_as_list("Drone"))
 

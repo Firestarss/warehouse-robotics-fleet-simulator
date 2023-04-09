@@ -81,13 +81,25 @@ class Fleet:
         return_str = "Fleet({\n"
         for key in self.robots:
             return_str += "    '" + str(key) + "': {\n"
-            for bot_id in self.robots.keys():
+            for bot_id in self.robots[key]:
                 return_str += ("        '" + bot_id + "': " + 
-                               str(self.robots[bot_id]) + ",\n")
+                               str(self.robots[key][bot_id]) + ",\n")
             return_str = return_str[:-1]
             return_str += " }\n"
         return_str += "})"
         return return_str
+    
+    def add(self, agent):
+        # print(f"Adding {agent} to {self.robots}")
+        # print(f"Robot Type: {agent.robot_type}, Robot ID: {agent.robot_id}")
+        self.robots[agent.robot_type][agent.robot_id] = agent
+        # print(self.robots)
+    
+    def remove(self, agent):
+        # print(f"Removing {agent} from {self.robots}")
+        # print(f"Robot Type: {agent.robot_type}, Robot ID: {agent.robot_id}")
+        self.robots[agent.robot_type].pop(agent.robot_id)
+        # print(self.robots)
     
     def populate_by_composition(self, fleet_composition, start_points):
         """
@@ -103,13 +115,13 @@ class Fleet:
             if line[0] == "Drone":
                 for i in range(line[1]):
                     robot_id = "D" + str(i)
-                    bots[robot_id] = Robot(robot_id, start_points[robot_num])
+                    bots[robot_id] = Drone(robot_id, start_points[robot_num])
                     robot_num += 1
                 self.robots["Drone"] = bots
             if line[0] == "AMR":
                 for i in range(line[1]):
                     robot_id = "A" + str(i)
-                    bots[robot_id] = Robot(robot_id, start_points[robot_num])
+                    bots[robot_id] = AMR(robot_id, start_points[robot_num])
                     robot_num += 1
                 self.robots["AMR"] = bots
                 

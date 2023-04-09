@@ -99,5 +99,13 @@ def ccw(A,B,C):
     return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x)
     
 def intersect(A,B,C,D):
-    # Return true if line segments AB and CD intersect
-    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+    """
+    Return true if line segments AB and CD intersect
+    Return false if segments are equal
+
+    path1: start Point, end Point
+    path2: start Point, end Point
+    """
+    if not ((A==C) & (B==D)):
+        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+    return False
