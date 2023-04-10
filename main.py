@@ -28,7 +28,7 @@ while y < wh1_zone.y_lims[1]:
 
 pick_xs = [5, 35, 45, 75, 85, 115, 125, 155, 165, 195]
 pick_ys = [25, 35, 45, 55, 65, 95, 105, 115, 125, 135]
-pick_zs = [5, 15, 25, 35, 45]
+pick_zs = [5, 15, 25, 35]
 wh1_pick_points = []
 for k in pick_zs:
     for j in pick_ys:
@@ -60,5 +60,5 @@ print(fleet.get_robots_as_list("Drone"))
 
 fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 
-visualizer = Visualizer(wh1_map, fleet, rand_task_list)
-
+visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="default_static")
+visualizer.show()

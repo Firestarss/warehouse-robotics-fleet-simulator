@@ -59,6 +59,29 @@ class Zone:
         return self.y_lims[1] - self.y_lims[0]
     def z_range(self):
         return self.z_lims[1] - self.z_lims[0]
+    
+    def mesh_params(self):
+        """
+        Returns a tuple of lists with values x, y, z, i, j, and k values for the
+        plotly.graph_objects.mesh3d function. 
+        Return format is (x_list, y_list, z_list, i_list, j_list, k_list).
+        """
+        
+        x_list, y_list, z_list, i_list, j_list, k_list = [], [], [], [], [], []
+        
+        for z in self.z_lims:
+            for y in self.y_lims:
+                for x in self.x_lims:
+                    x_list.append(x)
+                    y_list.append(y)
+                    z_list.append(z)
+        
+        i_list = [0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7]
+        j_list = [3, 3, 5, 5, 6, 6, 1, 1, 2, 2, 4, 4]
+        k_list = [1, 2, 1, 4, 2, 4, 3, 5, 3, 6, 5, 6]
+        
+        return (x_list, y_list, z_list, i_list, j_list, k_list)
+        
 
 class PointZone(Zone):
     def __repr__(self):
@@ -111,7 +134,7 @@ class TaskList:
     def add_task(self, task):
         self.tasks.append(task)
     
-    def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix=""):
+    def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix="T"):
         self.tasks = []
         for i in range(num_tasks):
             task_id = task_id_prefix + str(i)

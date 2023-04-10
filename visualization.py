@@ -14,33 +14,73 @@ class Visualizer:
               'rgba(127, 127,  127, 1.0 )',
               'rgba(188, 189,   34, 1.0 )', 
               'rgba( 23, 190,  207, 1.0 )']
-    def __init__(self, wh_map, fleet, task_list):
+    def __init__(self, wh_map, task_list, fleet, vis_type="default_static"):
         self.wh_map = wh_map
         self.fleet = fleet
         self.task_list = task_list
-        
-        # type_options = {
-        #     "simple_trace": self.simple_trace
-        # }
-        # self.vis_func = type_options[vis_type]
-        
+
+        type_options = {
+            "default_static": self.color_tasks_traces_off,
+            "color_tasks_traces_off": self.color_tasks_traces_off,
+            "black_tasks_traces_on": self.black_tasks_traces_on
+        }
+        self.vis_func = type_options[vis_type]
+
         self.fig = go.Figure()
-        
-        self.plot_pick_drop_points()
-        self.fig.show()
-   
+        self.set_fig_layout()
+
     # def __repr__(self):
     #     pass
+
+    def show(self):
+        self.vis_func()
+        self.fig.show()
+
+    def color_tasks_traces_off(self):
+        self.plot_blocked_areas()
+        self.plot_pick_drop_points()
+
+    def black_tasks_traces_on(self):
+        self.plot_blocked_areas()
+        self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
+        test_path = [Point(155,45,15), 
+                     Point(155,55,15), 
+                     Point(155,65,15),
+                     Point(155,65,25),
+                     Point(155,65,25),
+                     Point(145,65,25)]
+        self.trace_path(test_path, "Test Path")
+
+    def set_fig_layout(self):
+        self.fig.update_layout(
+            scene = dict(
+                xaxis = dict(nticks=self.wh_map.wh_zone.x_range()//5, range=[self.wh_map.wh_zone.x_lims[1], self.wh_map.wh_zone.x_lims[0]]),
+                yaxis = dict(nticks=self.wh_map.wh_zone.y_range()//5, range=self.wh_map.wh_zone.y_lims,),
+                zaxis = dict(nticks=self.wh_map.wh_zone.z_range()//5, range=self.wh_map.wh_zone.z_lims,),
+                aspectmode="data"),
+            width=1200,
+            margin=dict(r=20, l=20, b=20, t=20))
     
     def color(self, idx):
         return self.colors[idx % len(self.colors)]
     
     def plot_blocked_areas(self):
-        pass
-    
-    def simple_trace(self):
-        pass
-    
+        lightness = 150
+        for blocked_area in self.wh_map.blocked_areas:
+            x, y, z, i, j, k = blocked_area.mesh_params()
+            self.fig.add_mesh3d(
+                # 8 vertices of a cube
+                x=x,
+                y=y,
+                z=z,
+                i = i,
+                j = j,
+                k = k,
+                opacity=0.4,
+                color=f'rgb({lightness},{lightness},{lightness})',
+                flatshading = True
+            )
+
     def plot_pick_drop_points(self, color=None):
         """creates 3D plot showing agent start locations and task locations"""
         tasks = self.task_list.tasks
@@ -92,11 +132,25 @@ class Visualizer:
                     name=f"Pick {tasks[i].task_id}: {pick_str}",
                     text=[tasks[i].task_id])
 
-        self.fig.update_layout(
-            scene = dict(
-                xaxis = dict(nticks=self.wh_map.wh_zone.x_range()//5, range=[self.wh_map.wh_zone.x_lims[1], self.wh_map.wh_zone.x_lims[0]]),
-                yaxis = dict(nticks=self.wh_map.wh_zone.y_range()//5, range=self.wh_map.wh_zone.y_lims,),
-                zaxis = dict(nticks=self.wh_map.wh_zone.z_range()//5, range=self.wh_map.wh_zone.z_lims,),
-                aspectmode="data"),
-            width=1200,
-            margin=dict(r=20, l=20, b=20, t=20))
+    def trace_path(self, point_path, path_name="", color='rgb(31,119,180)'):
+        xs = [point.x for point in point_path]
+        ys = [point.y for point in point_path]
+        zs = [point.z for point in point_path]
+        labels = [f"Seg. Idx. {i}" for i in list(range(len(point_path)))]
+        self.fig.add_scatter3d(
+            x=xs,
+            y=ys,
+            z=zs,
+            mode='lines+markers',
+            marker=dict(color=color, size=3),
+            name=path_name,
+            text=labels)
+        self.fig.add_scatter3d(
+            x=[xs[0]],
+            y=[ys[0]],
+            z=[zs[0]],
+            mode='markers+text',
+            marker=dict(color=color, size=5, symbol='square'),
+            name=path_name,
+            showlegend=False,
+            text=path_name)
