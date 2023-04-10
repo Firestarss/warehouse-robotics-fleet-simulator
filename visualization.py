@@ -44,13 +44,6 @@ class Visualizer:
         self.plot_blocked_areas()
         self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
         self.trace_robot_paths()
-        # test_path = [Point(155,45,15), 
-        #              Point(155,55,15), 
-        #              Point(155,65,15),
-        #              Point(155,65,25),
-        #              Point(155,65,25),
-        #              Point(145,65,25)]
-        # self.trace_path(test_path, "Test Path")
 
     def set_fig_layout(self):
         self.fig.update_layout(
