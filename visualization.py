@@ -14,10 +14,11 @@ class Visualizer:
               'rgba(127, 127,  127, 1.0 )',
               'rgba(188, 189,   34, 1.0 )', 
               'rgba( 23, 190,  207, 1.0 )']
-    def __init__(self, wh_map, task_list, fleet, vis_type="default_static"):
+    def __init__(self, wh_map, task_list, fleet, vis_type="default_static", show_t=True):
         self.wh_map = wh_map
         self.fleet = fleet
         self.task_list = task_list
+        self.show_t = show_t
 
         type_options = {
             "default_static": self.color_tasks_traces_off,
@@ -43,7 +44,7 @@ class Visualizer:
     def black_tasks_traces_on(self):
         self.plot_blocked_areas()
         self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
-        self.trace_robot_paths()
+        self.trace_robot_paths(show_t=self.show_t)
 
     def set_fig_layout(self):
         self.fig.update_layout(

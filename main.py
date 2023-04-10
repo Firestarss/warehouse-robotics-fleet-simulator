@@ -70,5 +70,10 @@ print(fleet.get_robots_as_list("Drone"))
 
 fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 
-visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on")
-visualizer.show()
+
+# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off")
+# task_visualizer.show()
+
+
+path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
+path_visualizer.show()
