@@ -54,11 +54,21 @@ print(fleet)
 
 print(fleet.get_robots_as_list("Drone"))
 
-# fleet.robots["Drone"]["D0"].add_paths([[Point(10,10,10)]])
+fleet.robots["Drone"]["D0"].add_paths([[Point(5,25,5),
+                                        Point(5,35,5),
+                                        Point(5,45,5),
+                                        Point(5,55,5)]])
+fleet.robots["Drone"]["D0"].add_paths([[Point(5,55,5),
+                                        Point(5,55,15),
+                                        Point(5,55,25)]])
+fleet.robots["Drone"]["D0"].add_paths([[Point(5,55,25),
+                                        Point(5,65,25),
+                                        Point(5,75,25),
+                                        Point(5,85,25)]])
 # print(fleet.robots["Drone"]["D0"].path)
 # print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
 
 fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 
-visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="default_static")
+visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on")
 visualizer.show()

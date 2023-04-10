@@ -43,13 +43,14 @@ class Visualizer:
     def black_tasks_traces_on(self):
         self.plot_blocked_areas()
         self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
-        test_path = [Point(155,45,15), 
-                     Point(155,55,15), 
-                     Point(155,65,15),
-                     Point(155,65,25),
-                     Point(155,65,25),
-                     Point(145,65,25)]
-        self.trace_path(test_path, "Test Path")
+        self.trace_robot_paths()
+        # test_path = [Point(155,45,15), 
+        #              Point(155,55,15), 
+        #              Point(155,65,15),
+        #              Point(155,65,25),
+        #              Point(155,65,25),
+        #              Point(145,65,25)]
+        # self.trace_path(test_path, "Test Path")
 
     def set_fig_layout(self):
         self.fig.update_layout(
@@ -58,13 +59,13 @@ class Visualizer:
                 yaxis = dict(nticks=self.wh_map.wh_zone.y_range()//5, range=self.wh_map.wh_zone.y_lims,),
                 zaxis = dict(nticks=self.wh_map.wh_zone.z_range()//5, range=self.wh_map.wh_zone.z_lims,),
                 aspectmode="data"),
-            width=1200,
+            width=1500,
             margin=dict(r=20, l=20, b=20, t=20))
     
     def color(self, idx):
         return self.colors[idx % len(self.colors)]
     
-    def plot_blocked_areas(self):
+    def plot_blocked_areas(self, hoverinfo="skip"):
         lightness = 150
         for blocked_area in self.wh_map.blocked_areas:
             x, y, z, i, j, k = blocked_area.mesh_params()
@@ -78,7 +79,8 @@ class Visualizer:
                 k = k,
                 opacity=0.4,
                 color=f'rgb({lightness},{lightness},{lightness})',
-                flatshading = True
+                flatshading = True,
+                hoverinfo=hoverinfo
             )
 
     def plot_pick_drop_points(self, color=None):
@@ -132,25 +134,54 @@ class Visualizer:
                     name=f"Pick {tasks[i].task_id}: {pick_str}",
                     text=[tasks[i].task_id])
 
-    def trace_path(self, point_path, path_name="", color='rgb(31,119,180)'):
-        xs = [point.x for point in point_path]
-        ys = [point.y for point in point_path]
-        zs = [point.z for point in point_path]
-        labels = [f"Seg. Idx. {i}" for i in list(range(len(point_path)))]
-        self.fig.add_scatter3d(
-            x=xs,
-            y=ys,
-            z=zs,
-            mode='lines+markers',
-            marker=dict(color=color, size=3),
-            name=path_name,
-            text=labels)
-        self.fig.add_scatter3d(
-            x=[xs[0]],
-            y=[ys[0]],
-            z=[zs[0]],
-            mode='markers+text',
-            marker=dict(color=color, size=5, symbol='square'),
-            name=path_name,
-            showlegend=False,
-            text=path_name)
+    def trace_path(self, point_path, path_name="", color='rgb(31,119,180)', t_start=None, show_t=False):
+        if len(point_path) > 0:
+            xs = [point.x for point in point_path]
+            ys = [point.y for point in point_path]
+            zs = [point.z for point in point_path]
+            if t_start == None:
+                labels = [f"si={i}" for i in list(range(len(point_path)))]
+            else:
+                idx = list(range(len(point_path)))
+                ts = list(range(t_start,t_start+len(point_path)))
+                labels = [f"si={i}, t={t}" for i, t in zip(idx, ts)]
+            if show_t:
+                ts[0] = ""
+                ts[-1] = ""
+                self.fig.add_scatter3d(
+                    x=xs,
+                    y=ys,
+                    z=zs,
+                    mode='lines+markers+text',
+                    marker=dict(color=color, size=3),
+                    name=path_name,
+                    text=ts)
+            else:
+                self.fig.add_scatter3d(
+                    x=xs,
+                    y=ys,
+                    z=zs,
+                    mode='lines+markers',
+                    marker=dict(color=color, size=3),
+                    name=path_name,
+                    text=labels)
+        if path_name[-2:] != "-1":
+            self.fig.add_scatter3d(
+                x=[point_path[0].x],
+                y=[point_path[0].y],
+                z=[point_path[0].z],
+                mode='markers+text',
+                marker=dict(color=color, size=5, symbol='square'),
+                name=path_name,
+                showlegend=False,
+                text=path_name)
+
+    def trace_robot_paths(self, show_t=True):
+        robot_list = self.fleet.get_robots_as_list()
+        bot_num = 0
+        for bot in robot_list:
+            for i in range(len(bot.path)):
+                t_start = bot.path_len(r_end=i)
+                self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
+                                self.color(bot_num), t_start, show_t=show_t)
+            bot_num += 1

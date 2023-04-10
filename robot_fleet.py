@@ -27,8 +27,10 @@ class Robot:
         # So that robots can be sorted by path length - this is untested, comment this out if behavior is weird. Inequality might be flipped.
         return self.path_len() < other.path_len()
 
-    def path_len(self):
-        return len(list(chain(*self.path)))
+    def path_len(self, r_end=None):
+        if r_end == None:
+            return len(list(chain(*self.path)))
+        else: return len(list(chain(*self.path[:r_end])))
 
     def lookup_pos(self, time_step_num):
         """
