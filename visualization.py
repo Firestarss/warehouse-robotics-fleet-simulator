@@ -59,10 +59,9 @@ class Visualizer:
     def color(self, idx):
         return self.colors[idx % len(self.colors)]
     
-    def plot_blocked_areas(self, hoverinfo="skip"):
-        lightness = 150
-        for blocked_area in self.wh_map.blocked_areas:
-            x, y, z, i, j, k = blocked_area.mesh_params()
+    def plot_zone(self, zone, color="red", name="", hoverinfo=None):
+        if hoverinfo == None:
+            x, y, z, i, j, k = zone.mesh_params()
             self.fig.add_mesh3d(
                 # 8 vertices of a cube
                 x=x,
@@ -72,10 +71,32 @@ class Visualizer:
                 j = j,
                 k = k,
                 opacity=0.4,
-                color=f'rgb({lightness},{lightness},{lightness})',
+                color=color,
                 flatshading = True,
+                name=name
+            )
+        else:
+            x, y, z, i, j, k = zone.mesh_params()
+            self.fig.add_mesh3d(
+                # 8 vertices of a cube
+                x=x,
+                y=y,
+                z=z,
+                i = i,
+                j = j,
+                k = k,
+                opacity=0.4,
+                color=color,
+                flatshading = True,
+                name=name,
                 hoverinfo=hoverinfo
             )
+    
+    def plot_blocked_areas(self, hoverinfo="skip"):
+        lightness = 150
+        color = f'rgb({lightness},{lightness},{lightness})'
+        for blocked_area in self.wh_map.blocked_areas:
+            self.plot_zone(blocked_area, hoverinfo="skip", color=color)
 
     def plot_pick_drop_points(self, color=None):
         """creates 3D plot showing agent start locations and task locations"""
