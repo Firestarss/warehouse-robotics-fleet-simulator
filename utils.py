@@ -75,6 +75,10 @@ class TaskList:
         
     def add_task(self, task):
         self.tasks.append(task)
+
+    def remove_task(self, task):
+        i = self.tasks.index(task)
+        self.tasks.pop(i)
     
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix=""):
         for i in range(num_tasks):

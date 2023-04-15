@@ -1,15 +1,13 @@
 from utils import *
 from warehouse_map import *
 from robot_fleet import *
-import numpy as np
 from sklearn.cluster import KMeans
 
 """
-1. Group tasks such that each local group gets one AMR (kmeans?). Every AMR must be used.
+1. Group tasks such that each local group gets one AMR. Every AMR must be used.
 2. Assign AMR to go to kmeans centroid
-3. Based on groups cost, assign each drone a group
-4. For each task, split into nearest drone and AMR
-5. Assign Each drone a task and each AMR a task
+3. Assign a drone to each group and balance allocation based on task list length
+4. Assign tasks to agents splitting each into nearest drone and AMR
 """     
 
 class Region:
@@ -37,21 +35,64 @@ class TaskAllocator:
 
         self.regions = []
 
-        self.create_Regions()
-
-        self.assign_AMRs2Regions()
-
-        self.assign_Drones2Regions()
-
-        # self.assign_Tasks2Agents()
-
-        # [print(r) for r in self.regions]
-
+        if self.check_for_input_error():
+            return
 
     def __repr__(self):
-        return (f"WarehouseMap(task_list={self.task_list}\n" + 
+        return (f"TaskAllocator(task_list={self.task_list}\n" + 
                 f"    fleet={self.fleet},\n" +
                 f"    pick_points={self.pick_points})")
+    
+    def populate_fleet(self, allocation_type="regional"):
+        if allocation_type == "regional":
+            self.create_Regions()
+
+            self.assign_AMRs2Regions()
+
+            self.assign_Drones2Regions()
+
+            self.assign_Tasks2Agents()
+
+        elif allocation_type == "drones_only":
+            self.assign_Tasks2Fleet_homogeneous(robot_type="Drone")
+
+        elif allocation_type == "amrs_only":
+            self.assign_Tasks2Fleet_homogeneous(robot_type="AMR")
+
+        elif allocation_type == "treat_as_homogeneous":
+            self.assign_Tasks2Fleet_homogeneous(robot_type="All")
+
+        else:
+            print(f"UNRECOGNIZED TASK ALLOCATION KEY: '{allocation_type}'" +
+                  f"\nTry:" +
+                  f"\n    'regional'" +
+                  f"\n    'drones_only'" +
+                  f"\n    'amrs_only'" +
+                  f"\n    'treat_as_homogeneous'")
+
+
+        return self.fleet
+    
+    def check_for_input_error(self):
+        n_tasks = len(self.task_list.tasks)
+        n_ground = len(self.ground_agents)
+        n_drone = len(self.drone_agents)
+        
+        if n_tasks < n_ground:
+            print(f"TASK ALLOCATION WARNING: # of ground agents '{n_ground}' cannot exceed # of tasks '{n_tasks}'")
+            # return True
+        
+        if n_tasks < n_drone:
+            print(f"TASK ALLOCATION WARNING: # of drones '{n_drone}' is larger than # of tasks '{n_tasks}', drones will be unused")        
+
+        return False
+    
+    def split_task_by_point(self, task, point):        
+        drone_task = Task(task.task_id, task.pick_point, point)
+        
+        amr_task = Task(task.task_id, point, task.drop_point)
+
+        return drone_task, amr_task
     
     def create_Regions(self):
         """
@@ -59,7 +100,7 @@ class TaskAllocator:
         Each region is initialized with an id, 
         """
         # group using xy coordinates -> do not care about z height for grouping
-        flattened_pick_points = np.asarray([[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks])
+        flattened_pick_points = [[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks]
         
         # Use example if weighting is desired between clusters and tasks
         # kmeans = KMeans(n_clusters=n_ground_agents, random_state=0).fit(w_vector_array[:,0:2], sample_weight = w_vector_array[:,2])
@@ -96,7 +137,8 @@ class TaskAllocator:
         Switch any overlapping paths to get an approximated optimal allocation
         """
 
-        print(f"AMR TOTAL ASSIGNMENT COST PRIOR = {sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])}")
+        # Logging variable keeps track of drone travel distance prior to optimization
+        dist_prior = sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])
 
         for i in range(len(self.regions)):
             k = 0            
@@ -119,7 +161,10 @@ class TaskAllocator:
                 else:
                     k += 1
 
-        print(f"AMR TOTAL ASSIGNMENT COST POST = {sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])}")
+        # Logging variable keeps track of drone travel distance post optimization
+        dist_post = sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])
+
+        print(f"AMR assignment distance optimized: {dist_prior} -> {dist_post} (ft)")
         
     def assign_Drones2Regions(self):
         """
@@ -130,7 +175,7 @@ class TaskAllocator:
         d_idle = self.drone_agents
 
         # Assign every drone to a region
-        while len(d_idle) > 0:
+        while d_idle:
             for r in self.regions:
                 if d_idle:
                     # Closest drone by manhattan distance to region centroid
@@ -139,30 +184,28 @@ class TaskAllocator:
                     # Add closest drone to fleet and remove from the drone list
                     r.fleet.add(d_idle.pop(closest_drone_index))
 
-        # # Tasks Per Drone of each region if solution is optimal
-        TPD_avg = len(self.task_list.tasks) / len(self.fleet.robots["Drone"])
-        print("Tasks per drone avg = ", TPD_avg)
+        # # Drones Per Task of each region if solution is optimal
+        DPT_avg = len(self.fleet.robots["Drone"]) / len(self.task_list.tasks)
 
         # If a group is oversized, shift one robot to the nearest undersized group
-        TPD_std = None
-        last_std = 0
-        while TPD_std != last_std:
-            last_std = TPD_std
+        DPT_std = np.inf
+        last_std = None
+        while last_std is None or DPT_std < last_std:
+            last_std = DPT_std
 
-            TPD_std = sum([(len(t.task_list.tasks) / len(t.fleet.robots['Drone']) - TPD_avg)**2 for t in self.regions])/len(self.regions)
-            
-            print(f"Tasks per drone std: {TPD_std}")
+            # Drones Per Task standard deviation used to approximate solution achievement
+            DPT_std = sum([(len(t.fleet.robots['Drone']) / len(t.task_list.tasks) - DPT_avg)**2 for t in self.regions])/len(self.regions)
 
             for r in self.regions:                
-                # Tasks per drone for this region
-                TPD_rgn = len(r.task_list.tasks) / len(r.fleet.robots["Drone"])
+                # float value for how many extra drones this region has based on the average estimate
+                extra_drones = len(r.fleet.robots['Drone']) -  DPT_avg * len(r.task_list.tasks)
 
-                # Donate a drone if region has too many. CANNOT DONATE LAST DRONE
-                if TPD_rgn < TPD_avg and len(r.fleet.robots['Drone']) > 1:
+                # If more than 1/2 of a drone is unused, donate closest drone. CANNOT DONATE LAST DRONE
+                if extra_drones > 0.5 and len(r.fleet.robots['Drone']) > 1:
                     # Recalculate all regions that still need more drones
-                    undersized_regions = [region for region in self.regions if len(region.task_list.tasks) / len(region.fleet.robots["Drone"]) > TPD_avg]
+                    undersized_regions = [region for region in self.regions if len(region.fleet.robots["Drone"]) / len(region.task_list.tasks) < DPT_avg]
 
-                    # closest undersized region
+                    # closest undersized region by centroid distance
                     r2 = min(undersized_regions, key=lambda x: manhattan_dist(r.center, x.center))
 
                     # closest drone in this fleet to centroid of next region
@@ -171,24 +214,154 @@ class TaskAllocator:
                     # Move drone from one region's fleet to the other
                     r.fleet.remove(closest_drone)
                     r2.fleet.add(closest_drone)
-                        
-
-        print(self.regions)
-
 
     def assign_Tasks2Agents(self):
-        # Repeat AMR line solving allocation
+        """
+        1. Sort the drones in order of availability (combination of distance to region and task distance)
+        2. Assign each drone to 1 random task while unclaimed tasks remain
+        3. Swap any overlapping lines
+        4. Split up task to drone and AMR
+        5. Repeat
+        """
+        dist_prior = 0
+        dist_post = 0
 
-        # for task in self.regions[i].task_list.tasks:
-        #     self.regions[i].fleet.robots["AMR"].add_task(task)
-        pass
+        for r in self.regions:
+            # Sort drones by distance to center of region
+            sorted_drone_fleet = sorted(r.fleet.get_robots_as_list(robot_type="Drone"), key=lambda x: manhattan_dist(x.pos, r.center))
+            # sorted_drone_fleet = r.fleet.get_robots_as_list(robot_type="Drone")
+            
+            # Sort tasks by inverse distance to the center of region
+            unclaimed_tasks = sorted(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, r.center), reverse=True)
+            # unclaimed_tasks = r.task_list.tasks
+
+            # Sweep depth keeps track of how many times we sweep through the fleet to assign tasks
+            sweep_depth = 0
+
+            # A sorted list of TaskLists corresponding to the sorted droned fleet
+            while unclaimed_tasks:
+                sweep_task_list = []
+
+                # Semi-arbitrarily assign next sweep of tasks
+                for i in range(len(sorted_drone_fleet)):
+                    if unclaimed_tasks:
+                        task = unclaimed_tasks.pop(0)
+                        sweep_task_list.append(task)
+
+                # Logging variable keeps track of drone travel distance prior to optimization
+                dist_prior += sum([manhattan_dist(sorted_drone_fleet[i].pos, task.pick_point) for i,task in enumerate(sweep_task_list)])
+
+                # Optimize sweep
+                for i in range(len(sweep_task_list)):
+                    k = 0
+                    while k < len(sweep_task_list):
+                        # if this is the drone's first task, start from its current position
+                        if sweep_depth == 0:
+                            path1 = [sorted_drone_fleet[i].pos, sweep_task_list[i].pick_point]
+                            path2 = [sorted_drone_fleet[k].pos, sweep_task_list[k].pick_point]
+
+                        # If previous tasks, assume that the drone is navigating from the center of the region (last drop off)
+                        else:
+                            path1 = [r.center, sweep_task_list[i].pick_point]
+                            path2 = [r.center, sweep_task_list[k].pick_point]
+                            
+                        # If paths intersect, swap assigned endpoints
+                        if intersect(path1[0], path1[1], path2[0], path2[1]):
+                            t1 = sweep_task_list[i]
+                            t2 = sweep_task_list[k]
+
+                            sweep_task_list[i] = t2
+                            sweep_task_list[k] = t1
+                        
+                            # Restart nested loop for every intersection to check back over previous paths
+                            k = 0
+                        else:
+                            k += 1
+
+                # Logging variable keeps track of drone travel distance post optimization
+                dist_post += sum([manhattan_dist(sorted_drone_fleet[i].pos, task.pick_point) for i,task in enumerate(sweep_task_list)])
+
+                # Assign tasks to drones and AMR's
+                for i, task in enumerate(sweep_task_list):
+                    # Split up task into two parts at handoff point (region center)
+                    drone_task, amr_task = self.split_task_by_point(task, r.center)
+
+                    # Add task to drone
+                    sorted_drone_fleet[i].add_task(drone_task)
+
+                    # Add task to this region's AMR
+                    r.fleet.get_robots_as_list(robot_type="AMR")[0].add_task(amr_task)
+
+                sweep_depth += 1
+
+        print(f"DRONE assignment distance optimized: {dist_prior} -> {dist_post} (ft)")
 
 
+    def assign_Tasks2Fleet_homogeneous(self, robot_type="All"):
+        """
+        2. Assign each drone to 1 random task while unclaimed tasks remain
+        3. Swap any overlapping lines
+        4. Assign tasks to agents
+        5. Repeat
+        """
+        dist_prior = 0
+        dist_post = 0
 
-            # TODO: populate AMR based on closest distance to kmeans centroid
+        # Sort drones by distance to center of region
+        agent_fleet = self.fleet.get_robots_as_list(robot_type=robot_type)
+        
+        # Sort tasks by inverse distance to the center of region
+        unclaimed_tasks = self.task_list.tasks
 
-            # TODO: populate drones based on closest distance to kmeans centroid? -> this is what the paper was for
+        # Sweep depth keeps track of how many times we sweep through the fleet to assign tasks
+        sweep_depth = 0
 
-            # TODO: Assign Tasks to AMR
+        # A sorted list of TaskLists corresponding to the sorted droned fleet
+        while unclaimed_tasks:
+            sweep_task_list = []
 
-            # TODO: Assign Tasks to Drone
+            # Semi-arbitrarily assign next sweep of tasks
+            for i in range(len(agent_fleet)):
+                if unclaimed_tasks:
+                    task = unclaimed_tasks.pop(0)
+                    sweep_task_list.append(task)
+
+            # Logging variable keeps track of drone travel distance prior to optimization
+            dist_prior += sum([manhattan_dist(agent_fleet[i].pos, task.pick_point) for i,task in enumerate(sweep_task_list)])
+
+            # Optimize sweep
+            for i in range(len(sweep_task_list)):
+                k = 0
+                while k < len(sweep_task_list):
+                    # if this is the drone's first task, start from its current position
+                    if sweep_depth == 0:
+                        path1 = [agent_fleet[i].pos, sweep_task_list[i].pick_point]
+                        path2 = [agent_fleet[k].pos, sweep_task_list[k].pick_point]
+
+                    # If previous tasks, assume that the drone is navigating from the center of the region (last drop off)
+                    else:
+                        path1 = [r.center, sweep_task_list[i].pick_point]
+                        path2 = [r.center, sweep_task_list[k].pick_point]
+                        
+                    # If paths intersect, swap assigned endpoints
+                    if intersect(path1[0], path1[1], path2[0], path2[1]):
+                        t1 = sweep_task_list[i]
+                        t2 = sweep_task_list[k]
+
+                        sweep_task_list[i] = t2
+                        sweep_task_list[k] = t1
+                    
+                        # Restart nested loop for every intersection to check back over previous paths
+                        k = 0
+                    else:
+                        k += 1
+
+            # Logging variable keeps track of drone travel distance post optimization
+            dist_post += sum([manhattan_dist(agent_fleet[i].pos, task.pick_point) for i,task in enumerate(sweep_task_list)])
+
+            # Assign tasks to fleet
+            [agent_fleet[i].add_task(task) for i, task in enumerate(sweep_task_list)]
+
+            sweep_depth += 1
+
+        print(f"Homogeneous fleet assignment distance optimized: {dist_prior} -> {dist_post} (ft)")

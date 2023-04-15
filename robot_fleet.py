@@ -48,6 +48,10 @@ class Robot:
     def add_task(self, task):
         task.assigned_robot = self
         self.task_list.add_task(task)
+
+    def remove_task(self, task):
+        task.assigned_robot = None
+        self.task_list.add_task(task)
     
     def add_paths(self, additional_paths_list):
         self.path.extend(additional_paths_list)
