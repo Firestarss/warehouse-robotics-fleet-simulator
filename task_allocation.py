@@ -338,10 +338,10 @@ class TaskAllocator:
                         path1 = [agent_fleet[i].pos, sweep_task_list[i].pick_point]
                         path2 = [agent_fleet[k].pos, sweep_task_list[k].pick_point]
 
-                    # If previous tasks, assume that the drone is navigating from the center of the region (last drop off)
+                    # If previous tasks, assume that the drone is navigating from the last drop off
                     else:
-                        path1 = [r.center, sweep_task_list[i].pick_point]
-                        path2 = [r.center, sweep_task_list[k].pick_point]
+                        path1 = [agent_fleet[i].task_list.tasks[sweep_depth-1].drop_point, sweep_task_list[i].pick_point]
+                        path2 = [agent_fleet[i].task_list.tasks[sweep_depth-1].drop_point, sweep_task_list[k].pick_point]
                         
                     # If paths intersect, swap assigned endpoints
                     if intersect(path1[0], path1[1], path2[0], path2[1]):

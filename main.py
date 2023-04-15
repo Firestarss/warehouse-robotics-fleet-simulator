@@ -76,15 +76,15 @@ task_allocator = TaskAllocator(rand_task_list, fleet)
 # Put arguments in this funciton
 task_allocator.populate_fleet(allocation_type="regional")
 
-# for agent in fleet.robots["AMR"].values():
-#     print(agent.task_list)
+for agent in fleet.robots["AMR"].values():
+    print(agent.task_list)
 
-fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
+# fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 
 
 # task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off")
 # task_visualizer.show()
 
 
-path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
-path_visualizer.show()
+# path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
+# path_visualizer.show()
