@@ -45,14 +45,14 @@ wh1_map = WarehouseMap(wh1_zone, shelves, wh1_pick_points, wh1_drop_points,
 wh1_map.show_occ_matrix(0)
 
 rand_task_list = TaskList()
-rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 10)
+rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 300)
 print(rand_task_list)
 
 fleet = Fleet()
-fleet.populate_by_composition([["Drone", 5], ["AMR", 5]], wh1_pick_points)
+fleet.populate_by_composition([["Drone", 200], ["AMR", 10]], wh1_pick_points)
 print(fleet)
 
-print(fleet.get_robots_as_list("Drone"))
+# print(fleet.get_robots_as_list("Drone"))
 
 # fleet.robots["Drone"]["D0"].add_paths([[Point(5,25,5),
 #                                         Point(5,35,5),
@@ -67,6 +67,17 @@ print(fleet.get_robots_as_list("Drone"))
 #                                         Point(5,85,25)]])
 # print(fleet.robots["Drone"]["D0"].path)
 # print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
+
+
+# 1 <= n_ground_agents <= n_drone_agents <= n_tasks
+
+task_allocator = TaskAllocator(rand_task_list, fleet)
+
+# Put arguments in this funciton
+task_allocator.populate_fleet(allocation_type="regional")
+
+# for agent in fleet.robots["AMR"].values():
+#     print(agent.task_list)
 
 fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 

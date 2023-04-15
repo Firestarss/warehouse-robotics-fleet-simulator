@@ -125,14 +125,22 @@ class TaskList:
             return "TaskList([])"
         tasklist_rep = "TaskList([ "
         indent = " "*len(tasklist_rep)
+
+        if self.tasks == []:
+            return "No Tasks"
+
         tasklist_rep += self.tasks[0].__repr__()
         for i in range(1,len(self.tasks)):
             tasklist_rep += ",\n" + indent + self.tasks[i].__repr__()
         tasklist_rep += " ])"
         return tasklist_rep
-    
+        
     def add_task(self, task):
         self.tasks.append(task)
+
+    def remove_task(self, task):
+        i = self.tasks.index(task)
+        self.tasks.pop(i)
     
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix="T"):
         self.tasks = []
@@ -141,3 +149,30 @@ class TaskList:
             pick_point = random.choice(pick_points)
             drop_point = random.choice(drop_points)
             self.tasks.append(Task(task_id, pick_point, drop_point))
+
+def manhattan_dist(point1, point2):
+    dx = abs(point1.x - point2.x)
+    dy = abs(point1.y - point2.y)
+    dz = abs(point1.z - point2.z)
+    return dx + dy + dz
+
+def diag_dist(point1, point2):
+    dx = abs(point1.x - point2.x)
+    dy = abs(point1.y - point2.y)
+    dz = abs(point1.z - point2.z)
+    return math.sqrt(dx + dy + dz)
+
+def ccw(A,B,C):
+    return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x)
+    
+def intersect(A,B,C,D):
+    """
+    Return true if line segments AB and CD intersect
+    Return false if segments are equal
+
+    path1: start Point, end Point
+    path2: start Point, end Point
+    """
+    if not ((A==C) & (B==D)):
+        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+    return False

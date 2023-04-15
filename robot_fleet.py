@@ -15,7 +15,7 @@ class Robot:
     def __init__(self, robot_id, pos):
         self.robot_id = robot_id
         self.pos = pos
-        self.task_list = TaskList()
+        self.task_list = TaskList(tasks=[])
         self.path = [[pos]]
         self.curr_path_idx = [0,0]
 
@@ -55,6 +55,10 @@ class Robot:
         task.assigned_robot = self
         self.task_list.add_task(task)
 
+    def remove_task(self, task):
+        task.assigned_robot = None
+        self.task_list.add_task(task)
+
     def add_paths(self, additional_paths_list):
         self.path.extend(additional_paths_list)
 
@@ -63,7 +67,6 @@ class Robot:
         if curr_path_idx[1] == len(self.path[curr_path_idx[0]]):
             curr_path_idx = [curr_path_idx[0]+1, 0]
         self.pos = self.path[curr_path_idx[0],curr_path_idx[1]]
-
 
 class Drone(Robot):
     robot_type = "Drone"
@@ -94,6 +97,18 @@ class Fleet:
             return_str += " }\n"
         return_str += "})"
         return return_str
+    
+    def add(self, agent):
+        # print(f"Adding {agent} to {self.robots}")
+        # print(f"Robot Type: {agent.robot_type}, Robot ID: {agent.robot_id}")
+        self.robots[agent.robot_type][agent.robot_id] = agent
+        # print(self.robots)
+    
+    def remove(self, agent):
+        # print(f"Removing {agent} from {self.robots}")
+        # print(f"Robot Type: {agent.robot_type}, Robot ID: {agent.robot_id}")
+        self.robots[agent.robot_type].pop(agent.robot_id)
+        # print(self.robots)
 
     def populate_by_composition(self, fleet_composition, start_points):
         """
@@ -108,13 +123,13 @@ class Fleet:
             if line[0] == "Drone":
                 for i in range(line[1]):
                     robot_id = "D" + str(i)
-                    bots[robot_id] = Robot(robot_id, start_points[robot_num])
+                    bots[robot_id] = Drone(robot_id, start_points[robot_num])
                     robot_num += 1
                 self.robots["Drone"] = bots
             if line[0] == "AMR":
                 for i in range(line[1]):
                     robot_id = "A" + str(i)
-                    bots[robot_id] = Robot(robot_id, start_points[robot_num])
+                    bots[robot_id] = AMR(robot_id, start_points[robot_num])
                     robot_num += 1
                 self.robots["AMR"] = bots
 
@@ -155,7 +170,7 @@ class Fleet:
         of their paths. Robots that finish with their currently planned paths
         sooner are considered to be that much "closer."
         """
-        robot_list = self.get_robots_as_list()
+        robot_list = self.get_robots_as_list(robot_type=robot_type)
         dists = []
         bots_dists = []
         time = self.longest_path_len(robot_type)
