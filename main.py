@@ -3,6 +3,7 @@ from warehouse_map import *
 from robot_fleet import *
 from path_planning import *
 from task_allocation import *
+from visualization import *
 
 wh1_zone = Zone([0,200], [0,150], [0, 50])
 shelf_x_range = 20
@@ -27,7 +28,7 @@ while y < wh1_zone.y_lims[1]:
 
 pick_xs = [5, 35, 45, 75, 85, 115, 125, 155, 165, 195]
 pick_ys = [25, 35, 45, 55, 65, 95, 105, 115, 125, 135]
-pick_zs = [5, 15, 25, 35, 45]
+pick_zs = [5, 15, 25, 35]
 wh1_pick_points = []
 for k in pick_zs:
     for j in pick_ys:
@@ -53,9 +54,20 @@ print(fleet)
 
 # print(fleet.get_robots_as_list("Drone"))
 
-# fleet.robots["Drone"]["D0"].add_paths([[Point(10,10,10)]])
+# fleet.robots["Drone"]["D0"].add_paths([[Point(5,25,5),
+#                                         Point(5,35,5),
+#                                         Point(5,45,5),
+#                                         Point(5,55,5)]])
+# fleet.robots["Drone"]["D0"].add_paths([[Point(5,55,5),
+#                                         Point(5,55,15),
+#                                         Point(5,55,25)]])
+# fleet.robots["Drone"]["D0"].add_paths([[Point(5,55,25),
+#                                         Point(5,65,25),
+#                                         Point(5,75,25),
+#                                         Point(5,85,25)]])
 # print(fleet.robots["Drone"]["D0"].path)
 # print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
+
 
 # 1 <= n_ground_agents <= n_drone_agents <= n_tasks
 
@@ -66,3 +78,13 @@ task_allocator.populate_fleet(allocation_type="regional")
 
 # for agent in fleet.robots["AMR"].values():
 #     print(agent.task_list)
+
+fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
+
+
+# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off")
+# task_visualizer.show()
+
+
+path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
+path_visualizer.show()
