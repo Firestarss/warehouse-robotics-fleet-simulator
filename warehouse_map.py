@@ -2,14 +2,14 @@ from utils import *
 import numpy as np
 
 class WarehouseMap:
-    def __init__(self, wh_zone, blocked_areas, pick_points, drop_points, 
-                 resolution, units="ft"):
-        self.wh_zone = wh_zone
-        self.blocked_areas = blocked_areas
-        self.pick_points = pick_points
-        self.drop_points = drop_points
+    def __init__(self, wh_info, resolution=0.1, units="ft"):
         self.resolution = resolution # "cells" per unit
         self.units = units
+        self.pick_points = []
+        self.drop_points = []
+
+        self.wh_zone, self.blocked_areas = self.generate_map(wh_info)
+
         self.occupancy_matrix = self.make_occupancy_matrix(self.resolution)
         
     def __repr__(self):
@@ -18,6 +18,65 @@ class WarehouseMap:
                 f"    pick_points={self.pick_points},\n" + 
                 f"    drop_points={self.drop_points},\n" + 
                 f"    resolution={self.resolution})")
+    
+    def generate_points(self):
+        pick_xs = [5, 35, 45, 75, 85, 115, 125, 155, 165, 195]
+        pick_ys = [25, 35, 45, 55, 65, 95, 105, 115, 125, 135]
+        pick_zs = [5, 15, 25, 35]
+        for k in pick_zs:
+            for j in pick_ys:
+                for i in pick_xs:
+                    self.pick_points.append(Point(i,j,k))
+
+        drop_xs = [5, 25, 45, 65, 85, 105, 125, 145, 165, 185]
+
+        horizontal = True
+
+        if horizontal:
+            self.drop_points =[Point(i, 5, 5) for i in drop_xs]
+        else:
+            self.drop_points =[Point(5, i, 5) for i in drop_xs]
+
+        return self.pick_points, self.drop_points
+    
+    def generate_map(self, wh_info):
+        shelf_x = wh_info["shelf_size"]["x"]
+        shelf_y = wh_info["shelf_size"]["y"]
+        shelf_z = wh_info["shelf_size"]["z"]
+
+        count_x = wh_info["shelf_count"]["x"]
+        count_y = wh_info["shelf_count"]["y"]
+
+        aisle_x = wh_info["aisle"]["x"]
+        aisle_y = wh_info["aisle"]["y"]
+
+        bdr_top = wh_info["border"]["top"]
+        bdr_down = wh_info["border"]["down"]
+        bdr_left = wh_info["border"]["left"]
+        bdr_right = wh_info["border"]["right"]
+
+        shelves = []
+        z = 0
+        for x in range(count_x):
+            x = x * (shelf_x + aisle_x) + bdr_left
+
+            for y in range(count_y):
+                y = y * (shelf_y + aisle_y) + bdr_top
+
+                shelves.append(Zone([x, x+shelf_x], 
+                                    [y, y+shelf_y], 
+                                    [z, shelf_z]))
+
+        # Borders of shelving units
+        xlim = (shelf_x * count_x) + (aisle_x * (count_x-1))
+        ylim = (shelf_y * count_y) + (aisle_y * (count_y-1))
+        zlim = shelf_z
+                
+        wh_zone = Zone([0,xlim+bdr_left+bdr_right], [0,ylim+bdr_top+bdr_down], [0, zlim])
+
+        print(f"WAREHOUSE ZONE DIMENSIONS: {wh_zone}")
+
+        return wh_zone, shelves
 
     def point_to_cell(self, point):
         """

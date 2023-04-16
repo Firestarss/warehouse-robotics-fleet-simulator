@@ -5,52 +5,40 @@ from path_planning import *
 from task_allocation import *
 from visualization import *
 
-wh1_zone = Zone([0,200], [0,150], [0, 50])
-shelf_x_range = 20
-shelf_y_range = 50
-shelf_z_range = 40
-shelf_x0 = 10
-shelf_y0 = 20
-shelf_spacing = 20
+wh1_info = {
+    "shelf_size": {
+            "x" : 20,
+            "y" : 50,
+            "z" : 40
+            },
+    "shelf_count" : {
+            "x" : 4,
+            "y" : 2
+    },
+    "aisle" : {
+            "x" : 20,
+            "y" : 20
+    },
+    "border" : {
+            "top" : 20,
+            "down" : 20,
+            "left" : 10,
+            "right" : 10
+    }
+}
 
-shelves = []
-x = shelf_x0
-y = shelf_y0
-z = 0
-while y < wh1_zone.y_lims[1]:
-    while x < wh1_zone.x_lims[1]:
-        shelves.append(Zone([x, x+shelf_x_range], 
-                            [y, y+shelf_y_range], 
-                            [z, shelf_z_range]))
-        x += shelf_x_range + shelf_spacing
-    y += shelf_y_range + shelf_spacing
-    x = shelf_x0
+wh1_map = WarehouseMap(wh1_info, resolution=0.1, units="ft")
+wh1_pick_points, wh1_drop_points = wh1_map.generate_points()
 
-pick_xs = [5, 35, 45, 75, 85, 115, 125, 155, 165, 195]
-pick_ys = [25, 35, 45, 55, 65, 95, 105, 115, 125, 135]
-pick_zs = [5, 15, 25, 35]
-wh1_pick_points = []
-for k in pick_zs:
-    for j in pick_ys:
-        for i in pick_xs:
-            wh1_pick_points.append(Point(i,j,k))
-
-drop_xs = [5, 25, 45, 65, 85, 105, 125, 145, 165, 185]
-wh1_drop_points = []
-for i in drop_xs:
-    wh1_drop_points.append(Point(i, 5, 5))
-
-wh1_map = WarehouseMap(wh1_zone, shelves, wh1_pick_points, wh1_drop_points, 
-                       0.1, "ft")
-wh1_map.show_occ_matrix(0)
+# wh1_map.show_occ_matrix(0)
 
 rand_task_list = TaskList()
-rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 300)
-print(rand_task_list)
+rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 30)
+# print(rand_task_list)
 
 fleet = Fleet()
-fleet.populate_by_composition([["Drone", 200], ["AMR", 10]], wh1_pick_points)
-print(fleet)
+fleet.populate_by_composition([["Drone", 20], ["AMR", 2]], wh1_pick_points)
+# print(fleet)
 
 # print(fleet.get_robots_as_list("Drone"))
 
@@ -76,15 +64,12 @@ task_allocator = TaskAllocator(rand_task_list, fleet)
 # Put arguments in this funciton
 task_allocator.populate_fleet(allocation_type="regional")
 
-for agent in fleet.robots["AMR"].values():
-    print(agent.task_list)
-
 # fleet.robots["Drone"]["D0"].add_task(rand_task_list.tasks[0])
 
 
-# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off")
-# task_visualizer.show()
+task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off")
+task_visualizer.show()
 
 
-# path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
-# path_visualizer.show()
+path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
+path_visualizer.show()
