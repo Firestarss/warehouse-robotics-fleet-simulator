@@ -23,7 +23,8 @@ class Visualizer:
         type_options = {
             "default_static": self.color_tasks_traces_off,
             "color_tasks_traces_off": self.color_tasks_traces_off,
-            "black_tasks_traces_on": self.black_tasks_traces_on
+            "black_tasks_traces_on": self.black_tasks_traces_on,
+            "fleet_tasks": self.fleet_tasks
         }
         self.vis_func = type_options[vis_type]
 
@@ -45,6 +46,12 @@ class Visualizer:
         self.plot_blocked_areas()
         self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
         self.trace_robot_paths(show_t=self.show_t)
+        
+    def fleet_tasks(self):
+        self.plot_blocked_areas()
+        robots = self.fleet.get_robots_as_list()
+        for robot in robots:
+            self.plot_pick_drop_points(tasks=robot.task_list.tasks)
 
     def set_fig_layout(self):
         self.fig.update_layout(
@@ -98,11 +105,13 @@ class Visualizer:
         for blocked_area in self.wh_map.blocked_areas:
             self.plot_zone(blocked_area, hoverinfo="skip", color=color)
 
-    def plot_pick_drop_points(self, color=None):
+    def plot_pick_drop_points(self, tasks=None, color=None):
         """creates 3D plot showing agent start locations and task locations"""
-        tasks = self.task_list.tasks
+        if tasks == None:
+            tasks = self.task_list.tasks
         if color == None:
             for i in range(len(tasks)):
+                task_num = int(tasks[i].task_id[1:])
                 marker_size = np.linspace(10,5, len(tasks))
                 pick_str = tasks[i].pick_point.as_str()
                 drop_str = tasks[i].drop_point.as_str()
@@ -111,14 +120,14 @@ class Visualizer:
                     y=[tasks[i].pick_point.y,tasks[i].drop_point.y], 
                     z=[tasks[i].pick_point.z,tasks[i].drop_point.z], 
                     mode='lines',
-                    marker=dict(color=self.color(i)), 
+                    marker=dict(color=self.color(task_num)), 
                     name=f"Task {tasks[i].task_id}")
                 self.fig.add_scatter3d(
                     x=[tasks[i].pick_point.x], 
                     y=[tasks[i].pick_point.y], 
                     z=[tasks[i].pick_point.z], 
                     mode='markers+text',
-                    marker=dict(color=self.color(i), size=marker_size[i]),
+                    marker=dict(color=self.color(task_num), size=marker_size[i]),
                     name=f"Pick {tasks[i].task_id}: {pick_str}",
                     text=[tasks[i].task_id])
                 self.fig.add_scatter3d(
@@ -126,7 +135,7 @@ class Visualizer:
                     y=[tasks[i].drop_point.y], 
                     z=[tasks[i].drop_point.z], 
                     mode='markers',
-                    marker=dict(color=self.color(i), size=marker_size[i],
+                    marker=dict(color=self.color(task_num), size=marker_size[i],
                                 symbol='square'), 
                     name=f"Drop {tasks[i].task_id}: {drop_str}")
         else:
@@ -199,4 +208,5 @@ class Visualizer:
                 t_start = bot.path_len(r_end=i)
                 self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
                                 self.color(bot_num), t_start, show_t=show_t)
-            bot_num += 1
+            bot_num += 1            bot_num += 1
+            
