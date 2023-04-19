@@ -3,50 +3,114 @@ import numpy as np
 
 class WarehouseMap:
     def __init__(self, wh_info, resolution=0.1, units="ft"):
-        self.wh_info = wh_info
         self.resolution = resolution # "cells" per unit
         self.units = units
 
         self.pick_points = []
         self.drop_points = []
 
-        self.wh_zone, self.blocked_areas = self.generate_map()
+        self.initialize_info(wh_info)
+
+        self.blocked_areas, self.shelf_zone, self.wh_zone = self.generate_zones()
 
         self.occupancy_matrix = self.make_occupancy_matrix(self.resolution)
         
     def __repr__(self):
-        return (f"WarehouseMap(wh_info={self.wh_info}\n" + 
+        return (f"WarehouseMap(wh_info=wh_info\n" + 
                 f"    resolution={self.resolution},\n" + 
                 f"    units={self.units})")
     
+    def initialize_info(self, wh_info):
+        self.bin_x = wh_info["bin"]["x"]
+        self.bin_y = wh_info["bin"]["y"]
+        self.bin_z = wh_info["bin"]["z"]
+        self.bin_d = wh_info["bin"]["pick_distance"]
+
+        self.shelf_x = wh_info["shelf"]["x"] * self.bin_x
+        self.shelf_y = wh_info["shelf"]["y"] * self.bin_y
+        self.shelf_z = wh_info["shelf"]["z"] * self.bin_z
+
+        self.aisle_x = wh_info["warehouse"]["aisle_x"]
+        self.aisle_y = wh_info["warehouse"]["aisle_y"]
+
+        self.count_x = wh_info["warehouse"]["x"]
+        self.count_y = wh_info["warehouse"]["y"]
+
+        self.bdr_top = wh_info["border_top"]["padding"]
+        self.bdr_down = wh_info["border_down"]["padding"]
+        self.bdr_left = wh_info["border_left"]["padding"]
+        self.bdr_right = wh_info["border_right"]["padding"]
+
+        self.drop_points_top = wh_info["border_top"]["drop_points"]
+        self.drop_points_down = wh_info["border_down"]["drop_points"]
+        self.drop_points_left = wh_info["border_left"]["drop_points"]
+        self.drop_points_right = wh_info["border_right"]["drop_points"]
+
+    def generate_zones(self):
+        # Borders of shelving units
+        xlim = (self.shelf_x * self.count_x) + (self.aisle_x * (self.count_x-1))
+        ylim = (self.shelf_y * self.count_y) + (self.aisle_y * (self.count_y-1))
+        zlim = self.shelf_z
+
+        shelves = []
+
+        # Create shelves: List of small zones used to define individual shelf boundaries
+        for x in range(self.count_x):
+            x = x * (self.shelf_x + self.aisle_x) + self.bdr_left
+
+            for y in range(self.count_y):
+                y = y * (self.shelf_y + self.aisle_y) + self.bdr_top
+
+                shelves.append(Zone(
+                    [x, self.shelf_x + x], 
+                    [y, self.shelf_y + y], 
+                    [0, self.shelf_z]
+                    ))
+
+        # Create wh_zone: Range of warehouse floor boundary used to create occupancy map
+        wh_zone = Zone(
+                [0, xlim + self.bdr_left + self.bdr_right],
+                [0, ylim + self.bdr_top  + self.bdr_down],
+                [0, zlim]
+            )        
+
+        # Create shelf_zone: Range of shelving area boundary used to assign pick points
+        shelf_zone = Zone(
+                [self.bdr_left, xlim + self.bdr_left],
+                [self.bdr_top,  xlim + self.bdr_top],
+                [0,             zlim]
+            )
+
+        print(f"WAREHOUSE ZONE DIMENSIONS: {wh_zone}")
+
+        return shelves, shelf_zone, wh_zone,
+    
     def generate_points(self):
-        x_range = self.shelving_range["x"]
-        y_range = self.shelving_range["y"]
-        z_range = self.shelving_range["z"]
+        x_range = self.shelf_zone.x_lims
+        y_range = self.shelf_zone.y_lims
+        z_range = self.shelf_zone.z_lims
 
-        shelf_size = self.wh_info["shelf_size"]
-        aisle_size = self.wh_info["aisle"]
-
-        buffer = self.wh_info["pick_points"]["shelf_buffer"]
-
-        # Populate pick_xs: a list of possible pick point x values
-        # performed by contatenation of 2 lists for the front and rear side of each shelf
-        pick_xs_1 = np.arange(x_range[0]-buffer,                 x_range[1], shelf_size["x"]+aisle_size["x"])
-        pick_xs_2 = np.arange(x_range[0]+buffer+shelf_size["x"], x_range[1], shelf_size["x"]+aisle_size["x"])
-        pick_xs = list(np.append(pick_xs_1, pick_xs_2))
+        buffer = self.bin_d
 
         # Populate pick_xs: a list of possible pick point y values
         # performed by loop through shelf rows to avoid populating isles
         pick_ys = []
-        for row in range(self.wh_info["shelf_count"]["y"]):
-            y_anchor = row * (shelf_size["y"]+aisle_size["y"]) + y_range[0]
+        for row in range(self.count_y):
+            y_anchor = row * (self.shelf_y+self.aisle_y) + y_range[0]
 
-            pick_ys_row = np.arange(y_anchor+buffer, y_anchor+shelf_size["y"], self.wh_info["pick_points"]["neighbor_buffer"])
+            pick_ys_row = np.arange(y_anchor+buffer, y_anchor+self.shelf_y, self.bin_y)
 
             pick_ys.extend(list(pick_ys_row))
 
-        pick_zs = np.arange(5,z_range[1],10)
+
+        # Populate pick_xs: a list of possible pick point x values
+        # performed by contatenation of 2 lists for the front and rear side of each shelf
+        pick_xs_1 = np.arange(x_range[0]-buffer,              x_range[1], self.shelf_x+self.aisle_x)
+        pick_xs_2 = np.arange(x_range[0]+buffer+self.shelf_x, x_range[1], self.shelf_x+self.aisle_x)
+        pick_xs = list(np.append(pick_xs_1, pick_xs_2))
         
+        pick_zs = np.arange(5,z_range[1],10)
+
         for k in pick_zs:
             for j in pick_ys:
                 for i in pick_xs:
@@ -55,65 +119,27 @@ class WarehouseMap:
         print(f"TOTAL PICK_POINTS = {len(self.pick_points)}")
 
         # Populate Drop locations between 1 or all warehouse sides
-        if self.wh_info["drop_points"]["top"]:
-            self.drop_points.extend([Point(i, 5, 5) for i in np.arange(5,self.wh_zone.x_lims[1],20)])
+        if self.drop_points_top:
+            self.drop_points.extend(
+                [Point(i, 5, 5) for i in np.arange(5, self.wh_zone.x_lims[1], 20)]
+            )
         
-        if self.wh_info["drop_points"]["down"]:
-            self.drop_points.extend([Point(self.wh_zone.x_lims[1]-5, i, 5) for i in np.arange(5,self.wh_zone.y_lims[1],20)])
+        if self.drop_points_down:
+            self.drop_points.extend(
+                [Point(self.wh_zone.x_lims[1]-5, i, 5) for i in np.arange(5, self.wh_zone.x_lims[1], 20)]
+            )
         
-        if self.wh_info["drop_points"]["left"]:
-            self.drop_points.extend([Point(5, i, 5) for i in np.arange(5,self.wh_zone.y_lims[1],20)])
+        if self.drop_points_left:
+            self.drop_points.extend(
+                [Point(5, i, 5) for i in np.arange(5,self.wh_zone.y_lims[1],20)]
+            )
 
-        if self.wh_info["drop_points"]["right"]:
-            self.drop_points.extend([Point(i, self.wh_zone.y_lims[1]-5, 5) for i in np.arange(5,self.wh_zone.y_lims[1],20)])
+        if self.drop_points_right:
+            self.drop_points.extend(
+                [Point(i, self.wh_zone.y_lims[1]-5, 5) for i in np.arange(5, self.wh_zone.y_lims[1], 20)]
+            )
 
         return self.pick_points, self.drop_points
-    
-    def generate_map(self):
-        shelf_x = self.wh_info["shelf_size"]["x"]
-        shelf_y = self.wh_info["shelf_size"]["y"]
-        shelf_z = self.wh_info["shelf_size"]["z"]
-
-        count_x = self.wh_info["shelf_count"]["x"]
-        count_y = self.wh_info["shelf_count"]["y"]
-
-        aisle_x = self.wh_info["aisle"]["x"]
-        aisle_y = self.wh_info["aisle"]["y"]
-
-        bdr_top = self.wh_info["border"]["top"]
-        bdr_down = self.wh_info["border"]["down"]
-        bdr_left = self.wh_info["border"]["left"]
-        bdr_right = self.wh_info["border"]["right"]
-
-        shelves = []
-        z = 0
-        for x in range(count_x):
-            x = x * (shelf_x + aisle_x) + bdr_left
-
-            for y in range(count_y):
-                y = y * (shelf_y + aisle_y) + bdr_top
-
-                shelves.append(Zone([x, x+shelf_x], 
-                                    [y, y+shelf_y], 
-                                    [z, shelf_z]))
-
-        # Borders of shelving units
-        xlim = (shelf_x * count_x) + (aisle_x * (count_x-1))
-        ylim = (shelf_y * count_y) + (aisle_y * (count_y-1))
-        zlim = self.wh_info["height"]
-
-        wh_zone = Zone([0,xlim+bdr_left+bdr_right], [0,ylim+bdr_top+bdr_down], [0, zlim])
-        
-        # Global ranges of shelves used to assign pick points
-        self.shelving_range = {
-                    "x" : [bdr_left, xlim+bdr_left],
-                    "y" : [bdr_top, xlim+bdr_top],
-                    "z" : [z, shelf_z]
-        }
-
-        print(f"WAREHOUSE ZONE DIMENSIONS: {wh_zone}")
-
-        return wh_zone, shelves
 
     def point_to_cell(self, point):
         """

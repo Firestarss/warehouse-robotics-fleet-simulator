@@ -6,35 +6,39 @@ from task_allocation import *
 from visualization import *
 
 wh1_info = {
-    "shelf_size": {
-            "x" : 20,
-            "y" : 50,
-            "z" : 40
-            },
-    "shelf_count" : {
-            "x" : 8,
-            "y" : 5
+    "bin" : {
+        "x" : 10,
+        "y" : 10,
+        "z" : 10,
+        "pick_distance" : 5
     },
-    "aisle" : {
-            "x" : 50,
-            "y" : 20
+    "shelf" : {
+        "x" : 2,
+        "y" : 5,
+        "z" : 4
     },
-    "border" : {
-            "top" : 20,
-            "down" : 20,
-            "left" : 10,
-            "right" : 10
+    "warehouse" : {
+        "x" : 5,
+        "y" : 4,
+        "z" : 60,
+        "aisle_x" : 40,
+        "aisle_y" : 30
     },
-    "height" : 60,
-    "pick_points" : {
-            "shelf_buffer": 5,
-            "neighbor_buffer": 5
+    "border_top" : {
+        "padding" : 20,
+        "drop_points" : True
     },
-    "drop_points" : {
-            "top" : True,
-            "down" : False,
-            "left" : False,
-            "right" : False
+    "border_down" : {
+        "padding" : 20,
+        "drop_points" : False
+    },
+    "border_left" : {
+        "padding" : 10,
+        "drop_points" : False
+    },
+    "border_right" : {
+        "padding" : 10,
+        "drop_points" : False
     }
 }
 
