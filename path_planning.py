@@ -66,6 +66,18 @@ class PathPlanner:
     def __init__(self, map, fleet):
         self.map = map
         self.fleet = fleet
+
+        self.colors = {
+            "HEADER" : '\033[95m',
+            "OKBLUE" : '\033[94m',
+            "OKCYAN" : '\033[96m',
+            "OKGREEN" : '\033[92m',
+            "WARNING" : '\033[93m',
+            "FAIL" : '\033[91m',
+            "ENDC" : '\033[0m',
+            "BOLD" : '\033[1m',
+            "UNDERLINE" : '\033[4m'
+        }
         
     def __repr__(self):
         pass
@@ -79,7 +91,7 @@ class PathPlanner:
         
         return [self.map.cell_to_point_center(Cell(x, y, z)) for x,y,z in path[::-1]]
 
-    def calc_a_star_path(self, start: Point, end: Point, collisions = True):
+    def calc_a_star_path(self, start: Point, end: Point, collisions = True, debug_info = None):
         start_cell = self.map.point_to_cell(start)
         end_cell = self.map.point_to_cell(end)
 
@@ -138,6 +150,9 @@ class PathPlanner:
                 if child in closed_set:
                     continue
 
+                if child in open_list:
+                    continue
+
                 c_x, c_y, c_z = child.get_position()
                 child_cell = Cell(c_x, c_y, c_z)
                 
@@ -145,19 +160,16 @@ class PathPlanner:
                 child.set_g(cur_node.get_g() + 1)
                 child.set_h(diag_dist(child_cell, end_cell))
 
-                if child in open_list:
-                    continue
-
                 heapq.heappush(open_list, child)
 
-        print(f"No path found: {start} --> {end} || {start_cell} --> {end_cell}")
+        print(f"{self.colors['FAIL']}No path found: {start} --> {end} || {start_cell} --> {end_cell} || {debug_info}{self.colors['ENDC']}")
         return None
     
-    def calc_a_star_path_without_collisions(self, start: Point, end: Point):
-        return self.calc_a_star_path(start, end, False)
+    def calc_a_star_path_without_collisions(self, start: Point, end: Point, debug_info = None):
+        return self.calc_a_star_path(start, end, False, debug_info = debug_info)
 
 
-    def calc_manhattan_path(self, start: Point, end: Point):
+    def calc_manhattan_path(self, start: Point, end: Point, debug_info = None):
         s_x, s_y, s_z = self.map.point_to_cell(start)
         e_x, e_y, e_z = self.map.point_to_cell(end)
 
@@ -204,13 +216,14 @@ class PathPlanner:
         for robot in robots_with_tasks:
             robot.get_next_task().started = True
             for task in robot.task_list.tasks:
-                path_segment = path_planning_alg(task.pick_point, task.drop_point)
+                debug_info = [task.task_id, task.assigned_robot.robot_id]
+                path_segment = path_planning_alg(task.pick_point, task.drop_point, debug_info = debug_info)
                 robot.add_path_segment(path_segment)
                 task.picked = True
                 task.done = True
                 next_task = robot.get_next_task()
                 if next_task:
-                    path_segment = path_planning_alg(task.drop_point, next_task.pick_point)
+                    path_segment = path_planning_alg(task.drop_point, next_task.pick_point, debug_info = debug_info)
                     robot.add_path_segment(path_segment)
                     next_task.started = True
 
