@@ -66,18 +66,6 @@ class PathPlanner:
     def __init__(self, map, fleet):
         self.map = map
         self.fleet = fleet
-
-        self.colors = {
-            "HEADER" : '\033[95m',
-            "OKBLUE" : '\033[94m',
-            "OKCYAN" : '\033[96m',
-            "OKGREEN" : '\033[92m',
-            "WARNING" : '\033[93m',
-            "FAIL" : '\033[91m',
-            "ENDC" : '\033[0m',
-            "BOLD" : '\033[1m',
-            "UNDERLINE" : '\033[4m'
-        }
         
     def __repr__(self):
         pass
@@ -162,7 +150,7 @@ class PathPlanner:
 
                 heapq.heappush(open_list, child)
 
-        print(f"{self.colors['FAIL']}No path found: {start} --> {end} || {start_cell} --> {end_cell} || {debug_info}{self.colors['ENDC']}")
+        print(f"{terminal_colors['FAIL']}No path found: {start} --> {end} || {start_cell} --> {end_cell} || {debug_info}{terminal_colors['ENDC']}")
         return None
     
     def calc_a_star_path_without_collisions(self, start: Point, end: Point, debug_info = None):
@@ -204,9 +192,8 @@ class PathPlanner:
 
         return [self.map.cell_to_point_center(node) for node in path]
 
-    def temp_plan_all_paths(self, alg = "manhattan"):
+    def temp_plan_all_paths(self, alg = "a*"):
         algorithms = {
-            "manhattan": self.calc_manhattan_path,
             "a*": self.calc_a_star_path,
             "a*_no_col": self.calc_a_star_path_without_collisions
         }
