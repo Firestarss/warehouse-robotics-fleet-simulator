@@ -230,32 +230,32 @@ class WarehouseMap:
         matrix_layer = self.occupancy_matrix[:,:,layer_num].astype(int)
         return(matrix_layer)
     
-    def show_occ_matrix(self, layer_num):
+    def show_occ_matrix(self, layer_num, highlight_cells = []):
         """
         Prints the layer of the occupancy matrix with Xs and •s, with the x axis (and first dimension) in the horizontal direction, y in the vertical direction, with axes labeled by cell number.
         """
         space = "   "
         free = "•"
-        blocked = "X"
+        blocked = "■"
         matrix_layer = self.occupancy_matrix[:,:,layer_num]
         num_rows = len(self.occupancy_matrix)
         num_cols = len(self.occupancy_matrix[0])
 
-        line0 = "   "
+        line0 = "    "
         for x in range(num_rows):
-            line0 += str(x) + space[:-1]
-            if x < 10:
-                line0 += " "
+            line0 += str(x).ljust(4)
         lines = [line0]
         for j in range(num_cols):
-            line = str(j) + " "
-            if j < 10:
-                line += " "
+            line = str(j).ljust(4)
             for i in range(num_rows):
                 if self.occupancy_matrix[i,j,layer_num]:
-                    line += blocked + space
+                    addition = blocked.ljust(4)
                 else:
-                    line += free + space
+                    addition = free.ljust(4)
+                if (i,j) in highlight_cells or (i,j,layer_num) in highlight_cells:
+                    addition = f"{terminal_colors['FAIL']}{addition}{terminal_colors['ENDC']}"
+
+                line += addition
             lines.append(line)
         
         print(lines[0])
