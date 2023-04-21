@@ -259,7 +259,7 @@ class PathPlanner:
 
         path.append(self.map.point_to_cell(end))
 
-        return [self.map.cell_to_point(node) for node in path]
+        return [self.map.cell_to_point_center(node) for node in path]
 
     def temp_plan_all_paths(self, alg = "manhattan"):
         algorithms = {

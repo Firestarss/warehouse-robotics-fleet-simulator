@@ -23,7 +23,8 @@ class Visualizer:
         type_options = {
             "default_static": self.color_tasks_traces_off,
             "color_tasks_traces_off": self.color_tasks_traces_off,
-            "black_tasks_traces_on": self.black_tasks_traces_on
+            "black_tasks_traces_on": self.black_tasks_traces_on,
+            "fleet_tasks": self.fleet_tasks
         }
         self.vis_func = type_options[vis_type]
 
@@ -45,6 +46,12 @@ class Visualizer:
         self.plot_blocked_areas()
         self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
         self.trace_robot_paths(show_t=self.show_t)
+        
+    def fleet_tasks(self):
+        self.plot_blocked_areas()
+        robots = self.fleet.get_robots_as_list()
+        for robot in robots:
+            self.plot_pick_drop_points(tasks=robot.task_list.tasks)
 
     def set_fig_layout(self):
         self.fig.update_layout(
@@ -98,11 +105,13 @@ class Visualizer:
         for blocked_area in self.wh_map.blocked_areas:
             self.plot_zone(blocked_area, hoverinfo="skip", color=color)
 
-    def plot_pick_drop_points(self, color=None):
+    def plot_pick_drop_points(self, tasks=None, color=None):
         """creates 3D plot showing agent start locations and task locations"""
-        tasks = self.task_list.tasks
+        if tasks == None:
+            tasks = self.task_list.tasks
         if color == None:
             for i in range(len(tasks)):
+                task_num = int(tasks[i].task_id[1:])
                 marker_size = np.linspace(10,5, len(tasks))
                 pick_str = tasks[i].pick_point.as_str()
                 drop_str = tasks[i].drop_point.as_str()
@@ -111,14 +120,14 @@ class Visualizer:
                     y=[tasks[i].pick_point.y,tasks[i].drop_point.y], 
                     z=[tasks[i].pick_point.z,tasks[i].drop_point.z], 
                     mode='lines',
-                    marker=dict(color=self.color(i)), 
+                    marker=dict(color=self.color(task_num)), 
                     name=f"Task {tasks[i].task_id}")
                 self.fig.add_scatter3d(
                     x=[tasks[i].pick_point.x], 
                     y=[tasks[i].pick_point.y], 
                     z=[tasks[i].pick_point.z], 
                     mode='markers+text',
-                    marker=dict(color=self.color(i), size=marker_size[i]),
+                    marker=dict(color=self.color(task_num), size=marker_size[i]),
                     name=f"Pick {tasks[i].task_id}: {pick_str}",
                     text=[tasks[i].task_id])
                 self.fig.add_scatter3d(
@@ -126,7 +135,7 @@ class Visualizer:
                     y=[tasks[i].drop_point.y], 
                     z=[tasks[i].drop_point.z], 
                     mode='markers',
-                    marker=dict(color=self.color(i), size=marker_size[i],
+                    marker=dict(color=self.color(task_num), size=marker_size[i],
                                 symbol='square'), 
                     name=f"Drop {tasks[i].task_id}: {drop_str}")
         else:
@@ -150,6 +159,7 @@ class Visualizer:
                     text=[tasks[i].task_id])
 
     def trace_path(self, point_path, path_name="", color='rgb(31,119,180)', t_start=None, show_t=False):
+        print(f"Tracing path {path_name}")
         if len(point_path) > 0:
             xs = [point.x for point in point_path]
             ys = [point.y for point in point_path]
@@ -195,8 +205,129 @@ class Visualizer:
         robot_list = self.fleet.get_robots_as_list()
         bot_num = 0
         for bot in robot_list:
+            print(bot.path)
             for i in range(len(bot.path)):
                 t_start = bot.path_len(r_end=i)
                 self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
                                 self.color(bot_num), t_start, show_t=show_t)
             bot_num += 1
+            
+    def animation(self):
+        # make figure
+        fig_dict = {
+            "data": [],
+            "layout": {},
+            "frames": []
+        }
+
+        # fill in most of layout
+        fig_dict["layout"]["xaxis"] = {"range": [30, 85], "title": "Life Expectancy"}
+        fig_dict["layout"]["yaxis"] = {"title": "GDP per Capita", "type": "log"}
+        fig_dict["layout"]["hovermode"] = "closest"
+        fig_dict["layout"]["updatemenus"] = [
+            {
+                "buttons": [
+                    {
+                        "args": [None, {"frame": {"duration": 500, "redraw": False},
+                                        "fromcurrent": True, "transition": {"duration": 300,
+                                                                            "easing": "quadratic-in-out"}}],
+                        "label": "Play",
+                        "method": "animate"
+                    },
+                    {
+                        "args": [[None], {"frame": {"duration": 0, "redraw": False},
+                                        "mode": "immediate",
+                                        "transition": {"duration": 0}}],
+                        "label": "Pause",
+                        "method": "animate"
+                    }
+                ],
+                "direction": "left",
+                "pad": {"r": 10, "t": 87},
+                "showactive": False,
+                "type": "buttons",
+                "x": 0.1,
+                "xanchor": "right",
+                "y": 0,
+                "yanchor": "top"
+            }
+        ]
+
+        sliders_dict = {
+            "active": 0,
+            "yanchor": "top",
+            "xanchor": "left",
+            "currentvalue": {
+                "font": {"size": 20},
+                "prefix": "Year:",
+                "visible": True,
+                "xanchor": "right"
+            },
+            "transition": {"duration": 300, "easing": "cubic-in-out"},
+            "pad": {"b": 10, "t": 50},
+            "len": 0.9,
+            "x": 0.1,
+            "y": 0,
+            "steps": []
+        }
+
+        # make data
+        year = 1952
+        for continent in continents:
+            dataset_by_year = dataset[dataset["year"] == year]
+            dataset_by_year_and_cont = dataset_by_year[
+                dataset_by_year["continent"] == continent]
+
+            data_dict = {
+                "x": list(dataset_by_year_and_cont["lifeExp"]),
+                "y": list(dataset_by_year_and_cont["gdpPercap"]),
+                "mode": "markers",
+                "text": list(dataset_by_year_and_cont["country"]),
+                "marker": {
+                    "sizemode": "area",
+                    "sizeref": 200000,
+                    "size": list(dataset_by_year_and_cont["pop"])
+                },
+                "name": continent
+            }
+            fig_dict["data"].append(data_dict)
+
+        # make frames
+        for year in years:
+            frame = {"data": [], "name": str(year)}
+            for continent in continents:
+                dataset_by_year = dataset[dataset["year"] == int(year)]
+                dataset_by_year_and_cont = dataset_by_year[
+                    dataset_by_year["continent"] == continent]
+
+                data_dict = {
+                    "x": list(dataset_by_year_and_cont["lifeExp"]),
+                    "y": list(dataset_by_year_and_cont["gdpPercap"]),
+                    "mode": "markers",
+                    "text": list(dataset_by_year_and_cont["country"]),
+                    "marker": {
+                        "sizemode": "area",
+                        "sizeref": 200000,
+                        "size": list(dataset_by_year_and_cont["pop"])
+                    },
+                    "name": continent
+                }
+                frame["data"].append(data_dict)
+
+            fig_dict["frames"].append(frame)
+            slider_step = {"args": [
+                [year],
+                {"frame": {"duration": 300, "redraw": False},
+                "mode": "immediate",
+                "transition": {"duration": 300}}
+            ],
+                "label": year,
+                "method": "animate"}
+            sliders_dict["steps"].append(slider_step)
+
+
+        fig_dict["layout"]["sliders"] = [sliders_dict]
+
+        fig = go.Figure(fig_dict)
+
+        fig.show()
