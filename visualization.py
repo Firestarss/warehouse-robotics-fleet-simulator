@@ -208,5 +208,124 @@ class Visualizer:
                 t_start = bot.path_len(r_end=i)
                 self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
                                 self.color(bot_num), t_start, show_t=show_t)
-            bot_num += 1            bot_num += 1
+            bot_num += 1
             
+    def animation(self):
+        # make figure
+        fig_dict = {
+            "data": [],
+            "layout": {},
+            "frames": []
+        }
+
+        # fill in most of layout
+        fig_dict["layout"]["xaxis"] = {"range": [30, 85], "title": "Life Expectancy"}
+        fig_dict["layout"]["yaxis"] = {"title": "GDP per Capita", "type": "log"}
+        fig_dict["layout"]["hovermode"] = "closest"
+        fig_dict["layout"]["updatemenus"] = [
+            {
+                "buttons": [
+                    {
+                        "args": [None, {"frame": {"duration": 500, "redraw": False},
+                                        "fromcurrent": True, "transition": {"duration": 300,
+                                                                            "easing": "quadratic-in-out"}}],
+                        "label": "Play",
+                        "method": "animate"
+                    },
+                    {
+                        "args": [[None], {"frame": {"duration": 0, "redraw": False},
+                                        "mode": "immediate",
+                                        "transition": {"duration": 0}}],
+                        "label": "Pause",
+                        "method": "animate"
+                    }
+                ],
+                "direction": "left",
+                "pad": {"r": 10, "t": 87},
+                "showactive": False,
+                "type": "buttons",
+                "x": 0.1,
+                "xanchor": "right",
+                "y": 0,
+                "yanchor": "top"
+            }
+        ]
+
+        sliders_dict = {
+            "active": 0,
+            "yanchor": "top",
+            "xanchor": "left",
+            "currentvalue": {
+                "font": {"size": 20},
+                "prefix": "Year:",
+                "visible": True,
+                "xanchor": "right"
+            },
+            "transition": {"duration": 300, "easing": "cubic-in-out"},
+            "pad": {"b": 10, "t": 50},
+            "len": 0.9,
+            "x": 0.1,
+            "y": 0,
+            "steps": []
+        }
+
+        # make data
+        year = 1952
+        for continent in continents:
+            dataset_by_year = dataset[dataset["year"] == year]
+            dataset_by_year_and_cont = dataset_by_year[
+                dataset_by_year["continent"] == continent]
+
+            data_dict = {
+                "x": list(dataset_by_year_and_cont["lifeExp"]),
+                "y": list(dataset_by_year_and_cont["gdpPercap"]),
+                "mode": "markers",
+                "text": list(dataset_by_year_and_cont["country"]),
+                "marker": {
+                    "sizemode": "area",
+                    "sizeref": 200000,
+                    "size": list(dataset_by_year_and_cont["pop"])
+                },
+                "name": continent
+            }
+            fig_dict["data"].append(data_dict)
+
+        # make frames
+        for year in years:
+            frame = {"data": [], "name": str(year)}
+            for continent in continents:
+                dataset_by_year = dataset[dataset["year"] == int(year)]
+                dataset_by_year_and_cont = dataset_by_year[
+                    dataset_by_year["continent"] == continent]
+
+                data_dict = {
+                    "x": list(dataset_by_year_and_cont["lifeExp"]),
+                    "y": list(dataset_by_year_and_cont["gdpPercap"]),
+                    "mode": "markers",
+                    "text": list(dataset_by_year_and_cont["country"]),
+                    "marker": {
+                        "sizemode": "area",
+                        "sizeref": 200000,
+                        "size": list(dataset_by_year_and_cont["pop"])
+                    },
+                    "name": continent
+                }
+                frame["data"].append(data_dict)
+
+            fig_dict["frames"].append(frame)
+            slider_step = {"args": [
+                [year],
+                {"frame": {"duration": 300, "redraw": False},
+                "mode": "immediate",
+                "transition": {"duration": 300}}
+            ],
+                "label": year,
+                "method": "animate"}
+            sliders_dict["steps"].append(slider_step)
+
+
+        fig_dict["layout"]["sliders"] = [sliders_dict]
+
+        fig = go.Figure(fig_dict)
+
+        fig.show()
