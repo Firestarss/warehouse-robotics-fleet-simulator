@@ -172,6 +172,9 @@ class WarehouseMap:
         return Point(point_x, point_y, point_z)
 
     def zone_points_to_cells(self, point_zone):
+        """
+        Coverts a PointZone to a CellZone.
+        """
         cell_c1 = self.point_to_cell(point_zone.corners[0])
         cell_c2 = self.point_to_cell(point_zone.corners[1])
         return CellZone([cell_c1.x, cell_c2.x], 
@@ -179,6 +182,9 @@ class WarehouseMap:
                         [cell_c1.z, cell_c2.z])
 
     def zone_cells_to_points(self, cell_zone):
+        """
+        Coverts a CellZone to a PointZone.
+        """
         point_c1 = self.cell_to_point(cell_zone.corners[0])
         point_c2 = self.cell_to_point(cell_zone.corners[1])
         return PointZone([point_c1.x, point_c2.x], 
@@ -186,6 +192,9 @@ class WarehouseMap:
                          [point_c1.z, point_c2.z])
 
     def make_occupancy_matrix(self, resolution):
+        """
+        Returns a 3D occupacy matrix corresponding to this map in the given resolution (cells per foot).
+        """
         # TODO incoperate range not being an exact multiple of resolution
         matrix_x_range = int(self.wh_zone.x_range() * resolution)
         matrix_y_range = int(self.wh_zone.y_range() * resolution)
@@ -199,10 +208,16 @@ class WarehouseMap:
         return occ_matrix
 
     def get_occ_matrix_layer(self, layer_num):
+        """
+        Returns a matrix of 1s (blocked) and 0s (free) of the specified layer of the map (z-level).
+        """
         matrix_layer = self.occupancy_matrix[:,:,layer_num].astype(int)
         return(matrix_layer)
     
     def show_occ_matrix(self, layer_num):
+        """
+        Prints the layer of the occupancy matrix with Xs and •s, with the x axis (and first dimension) in the horizontal direction, y in the vertical direction, with axes labeled by cell number.
+        """
         space = "   "
         free = "•"
         blocked = "X"
