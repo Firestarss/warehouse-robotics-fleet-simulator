@@ -16,7 +16,7 @@ class Robot:
         self.robot_id = robot_id
         self.pos = pos
         self.task_list = TaskList(tasks=[])
-        self.path = [[pos]]
+        self.path = []
         self.curr_path_idx = [0,0]
 
     def __repr__(self):
@@ -59,8 +59,12 @@ class Robot:
         task.assigned_robot = None
         self.task_list.add_task(task)
 
-    def add_paths(self, additional_paths_list):
-        self.path.extend(additional_paths_list)
+    def add_path_segment(self, path):
+        self.path.append(path)
+
+    def get_current_task(self): return self.task_list.get_current_task()
+
+    def get_next_task(self): return self.task_list.get_next_task()
 
     def update(self):
         curr_path_idx[1] += 1
@@ -183,3 +187,14 @@ class Fleet:
         closest_bots = [bot_dist[0] for bot_dist in bots_dists 
                         if bot_dist[1]==min_dist]
         return closest_bots
+    
+    def get_robots_with_tasks(self):
+        for robot_type, robots in self.robots.items():
+            for robot_id, robot in robots.items():
+                if robot.get_next_task() is not None or robot.get_current_task() is not None:
+                    yield robot
+
+    def is_fleet_done(self):
+        for _ in self.get_robots_with_tasks():
+            return False
+        return True

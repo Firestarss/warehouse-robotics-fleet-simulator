@@ -11,6 +11,9 @@ class Location:
     def __repr__(self):
         return f"Location({self.x},{self.y},{self.z})"
     
+    def __iter__(self):
+        return iter((self.x, self.y, self.z))
+    
     def as_str(self):
         return f"({self.x},{self.y},{self.z})"
     
@@ -142,6 +145,18 @@ class TaskList:
     def remove_task(self, task):
         i = self.tasks.index(task)
         self.tasks.pop(i)
+
+    def get_current_task(self):
+        for task in self.tasks:
+            if task.started and not task.done:
+                return task
+        return None
+            
+    def get_next_task(self):
+        for task in self.tasks:
+            if not task.started:
+                return task
+        return None
     
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix="T"):
         self.tasks = []
