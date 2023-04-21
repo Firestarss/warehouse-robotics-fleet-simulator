@@ -77,9 +77,9 @@ class PathPlanner:
             path.append(cur_node.position)
             cur_node = cur_node.parent
         
-        return [self.map.cell_to_point(Cell(x, y, z)) for x,y,z in path[::-1]]
+        return [self.map.cell_to_point_center(Cell(x, y, z)) for x,y,z in path[::-1]]
 
-    def calc_a_star_path(self, start: Point, end: Point):
+    def calc_a_star_path(self, start: Point, end: Point, collisions = True):
         start_cell = self.map.point_to_cell(start)
         end_cell = self.map.point_to_cell(end)
 
@@ -123,10 +123,11 @@ class PathPlanner:
                 if True in lt_zero or True in gt_lim:
                     continue
 
-                # Check if cell is blocked
-                cur_cell = Cell(neighbor[0], neighbor[1], neighbor[2])
-                if self.map.cell_blocked(cur_cell):
-                    continue
+                # Check if cell is blocked (if collisions flag is True)
+                if collisions:
+                    cur_cell = Cell(neighbor[0], neighbor[1], neighbor[2])
+                    if self.map.cell_blocked(cur_cell):
+                        continue
 
                 # Create and add new node to children
                 new_node = Node(neighbor, cur_node)
@@ -149,81 +150,11 @@ class PathPlanner:
 
                 heapq.heappush(open_list, child)
 
-        print(f"No path found: {start} --> {end}")
+        print(f"No path found: {start} --> {end} || {start_cell} --> {end_cell}")
         return None
     
-    def calc_a_star_path_no_collisions(self, start: Point, end: Point):
-        start_cell = self.map.point_to_cell(start)
-        end_cell = self.map.point_to_cell(end)
-
-        start_t = tuple(start_cell)
-        end_t = tuple(end_cell)
-        
-        start_node = Node(tuple(self.map.point_to_cell(start)))
-        end_node = Node(tuple(self.map.point_to_cell(end)))
-
-        open_list = [start_node]
-        closed_set = set()
-
-        heapq.heapify(open_list)
-
-        adjacent_deltas = set(itertools.product((-1,0,1), (-1,0,1), (-1,0,1)))
-        adjacent_deltas.discard((0,0,0))
-
-        x_lim = self.map.wh_zone.x_lims[1] * self.map.resolution
-        y_lim = self.map.wh_zone.y_lims[1] * self.map.resolution
-        z_lim = self.map.wh_zone.z_lims[1] * self.map.resolution
-        
-
-        while len(open_list) > 0:
-            # Get the current node
-            cur_node = heapq.heappop(open_list)
-            closed_set.add(cur_node)
-
-            # If the goal is found
-            if cur_node == end_node:
-                return self.backtrack_path(cur_node)
-            
-            # Generate children
-            children = []
-
-            for delta in adjacent_deltas:
-                neighbor = tuple(cur_node.get_position()[i] + delta[i] for i in range(len(cur_node.get_position())))
-
-                # Check if in range
-                lt_zero = [neighbor[i] < 0 for i in range(3)]
-                gt_lim = [neighbor[0] >= x_lim, neighbor[1] >= y_lim, neighbor[2] >= z_lim]
-                if True in lt_zero or True in gt_lim:
-                    continue
-
-                # # Check if cell is blocked
-                # cur_cell = Cell(neighbor[0], neighbor[1], neighbor[2])
-                # if self.map.cell_blocked(cur_cell):
-                #     continue
-
-                # Create and add new node to children
-                new_node = Node(neighbor, cur_node)
-                children.append(new_node)
-
-
-            for child in children:
-                if child in closed_set:
-                    continue
-
-                c_x, c_y, c_z = child.get_position()
-                child_cell = Cell(c_x, c_y, c_z)
-                
-
-                child.set_g(cur_node.get_g() + 1)
-                child.set_h(diag_dist(child_cell, end_cell))
-
-                if child in open_list:
-                    continue
-
-                heapq.heappush(open_list, child)
-
-        print(f"No path found: {start} --> {end}")
-        return None
+    def calc_a_star_path_without_collisions(self, start: Point, end: Point):
+        return self.calc_a_star_path(start, end, False)
 
 
     def calc_manhattan_path(self, start: Point, end: Point):
@@ -265,7 +196,7 @@ class PathPlanner:
         algorithms = {
             "manhattan": self.calc_manhattan_path,
             "a*": self.calc_a_star_path,
-            "a*_no_col": self.calc_a_star_path_no_collisions
+            "a*_no_col": self.calc_a_star_path_without_collisions
         }
         path_planning_alg = algorithms[alg]
 
