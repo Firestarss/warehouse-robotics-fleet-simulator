@@ -156,7 +156,23 @@ class WarehouseMap:
         cell_z = round((point.z - self.wh_zone.z_lims[0]) * self.resolution)
         return Cell(cell_x, cell_y, cell_z)
 
-    def cell_to_point(self, cell):
+    def cell_to_point_center(self, cell):
+        """
+        Converts Point from row-col-layer to x-y-z in feet.
+
+        Args:
+            cell (Point): cell to be converted
+
+        Returns:
+            Point: point where x, y, and z are in feet
+        """
+        half_cell = 1/self.resolution /2
+        point_x = cell.x/self.resolution + self.wh_zone.x_lims[0] + half_cell
+        point_y = cell.y/self.resolution + self.wh_zone.y_lims[0] + half_cell
+        point_z = cell.z/self.resolution + self.wh_zone.z_lims[0] + half_cell
+        return Point(point_x, point_y, point_z)
+    
+    def cell_to_point_edge(self, cell):
         """
         Converts Point from row-col-layer to x-y-z in feet.
 
@@ -185,8 +201,8 @@ class WarehouseMap:
         """
         Coverts a CellZone to a PointZone.
         """
-        point_c1 = self.cell_to_point(cell_zone.corners[0])
-        point_c2 = self.cell_to_point(cell_zone.corners[1])
+        point_c1 = self.cell_to_point_edge(cell_zone.corners[0])
+        point_c2 = self.cell_to_point_edge(cell_zone.corners[1])
         return PointZone([point_c1.x, point_c2.x], 
                          [point_c1.y, point_c2.y], 
                          [point_c1.z, point_c2.z])

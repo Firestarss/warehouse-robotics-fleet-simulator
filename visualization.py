@@ -159,6 +159,7 @@ class Visualizer:
                     text=[tasks[i].task_id])
 
     def trace_path(self, point_path, path_name="", color='rgb(31,119,180)', t_start=None, show_t=False):
+        print(f"Tracing path {path_name}")
         if len(point_path) > 0:
             xs = [point.x for point in point_path]
             ys = [point.y for point in point_path]
@@ -204,6 +205,7 @@ class Visualizer:
         robot_list = self.fleet.get_robots_as_list()
         bot_num = 0
         for bot in robot_list:
+            print(bot.path)
             for i in range(len(bot.path)):
                 t_start = bot.path_len(r_end=i)
                 self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
