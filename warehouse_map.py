@@ -156,7 +156,23 @@ class WarehouseMap:
         cell_z = round((point.z - self.wh_zone.z_lims[0]) * self.resolution)
         return Cell(cell_x, cell_y, cell_z)
 
-    def cell_to_point(self, cell):
+    def cell_to_point_center(self, cell):
+        """
+        Converts Point from row-col-layer to x-y-z in feet.
+
+        Args:
+            cell (Point): cell to be converted
+
+        Returns:
+            Point: point where x, y, and z are in feet
+        """
+        half_cell = 1/self.resolution /2
+        point_x = cell.x/self.resolution + self.wh_zone.x_lims[0] + half_cell
+        point_y = cell.y/self.resolution + self.wh_zone.y_lims[0] + half_cell
+        point_z = cell.z/self.resolution + self.wh_zone.z_lims[0] + half_cell
+        return Point(point_x, point_y, point_z)
+    
+    def cell_to_point_edge(self, cell):
         """
         Converts Point from row-col-layer to x-y-z in feet.
 
@@ -172,6 +188,9 @@ class WarehouseMap:
         return Point(point_x, point_y, point_z)
 
     def zone_points_to_cells(self, point_zone):
+        """
+        Coverts a PointZone to a CellZone.
+        """
         cell_c1 = self.point_to_cell(point_zone.corners[0])
         cell_c2 = self.point_to_cell(point_zone.corners[1])
         return CellZone([cell_c1.x, cell_c2.x], 
@@ -179,13 +198,19 @@ class WarehouseMap:
                         [cell_c1.z, cell_c2.z])
 
     def zone_cells_to_points(self, cell_zone):
-        point_c1 = self.cell_to_point(cell_zone.corners[0])
-        point_c2 = self.cell_to_point(cell_zone.corners[1])
+        """
+        Coverts a CellZone to a PointZone.
+        """
+        point_c1 = self.cell_to_point_edge(cell_zone.corners[0])
+        point_c2 = self.cell_to_point_edge(cell_zone.corners[1])
         return PointZone([point_c1.x, point_c2.x], 
                          [point_c1.y, point_c2.y], 
                          [point_c1.z, point_c2.z])
 
     def make_occupancy_matrix(self, resolution):
+        """
+        Returns a 3D occupacy matrix corresponding to this map in the given resolution (cells per foot).
+        """
         # TODO incoperate range not being an exact multiple of resolution
         matrix_x_range = int(self.wh_zone.x_range() * resolution)
         matrix_y_range = int(self.wh_zone.y_range() * resolution)
@@ -199,32 +224,38 @@ class WarehouseMap:
         return occ_matrix
 
     def get_occ_matrix_layer(self, layer_num):
+        """
+        Returns a matrix of 1s (blocked) and 0s (free) of the specified layer of the map (z-level).
+        """
         matrix_layer = self.occupancy_matrix[:,:,layer_num].astype(int)
         return(matrix_layer)
     
-    def show_occ_matrix(self, layer_num):
+    def show_occ_matrix(self, layer_num, highlight_cells = []):
+        """
+        Prints the layer of the occupancy matrix with Xs and •s, with the x axis (and first dimension) in the horizontal direction, y in the vertical direction, with axes labeled by cell number.
+        """
         space = "   "
         free = "•"
-        blocked = "X"
+        blocked = "■"
         matrix_layer = self.occupancy_matrix[:,:,layer_num]
         num_rows = len(self.occupancy_matrix)
         num_cols = len(self.occupancy_matrix[0])
 
-        line0 = "   "
+        line0 = "    "
         for x in range(num_rows):
-            line0 += str(x) + space[:-1]
-            if x < 10:
-                line0 += " "
+            line0 += str(x).ljust(4)
         lines = [line0]
         for j in range(num_cols):
-            line = str(j) + " "
-            if j < 10:
-                line += " "
+            line = str(j).ljust(4)
             for i in range(num_rows):
                 if self.occupancy_matrix[i,j,layer_num]:
-                    line += blocked + space
+                    addition = blocked.ljust(4)
                 else:
-                    line += free + space
+                    addition = free.ljust(4)
+                if (i,j) in highlight_cells or (i,j,layer_num) in highlight_cells:
+                    addition = f"{terminal_colors['FAIL']}{addition}{terminal_colors['ENDC']}"
+
+                line += addition
             lines.append(line)
         
         print(lines[0])
