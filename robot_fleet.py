@@ -50,6 +50,15 @@ class Robot:
         if time_step_num >= path_len:
             return (unnested_path[-1], path_len-time_step_num-1)
         return (unnested_path[time_step_num], path_len-time_step_num-1)
+    
+    def lookup_last_assigned_pos(self):
+        """
+        Get the last assigned location of the robot (time invariant). If no tasks have been assigned, return current pos.
+        """
+        last_task = self.task_list.get_last_task()
+        if last_task:
+            return last_task.drop_point
+        return self.pos
 
     def add_task(self, task):
         task.assigned_robot = self

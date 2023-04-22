@@ -109,7 +109,9 @@ class WarehouseMap:
         pick_xs_2 = np.arange(x_range[0]+buffer+self.shelf_x, x_range[1], self.shelf_x+self.aisle_x)
         pick_xs = list(np.append(pick_xs_1, pick_xs_2))
         
-        pick_zs = np.arange(5,z_range[1],10)
+        # Populate pick_zs
+        # Add points in the middle of every bin, but skip the bottom row (AMR's will drive there instead)
+        pick_zs = np.arange(self.bin_z/2 + self.bin_z,z_range[1],self.bin_z)
 
         for k in pick_zs:
             for j in pick_ys:

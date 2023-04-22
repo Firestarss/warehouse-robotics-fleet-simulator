@@ -158,6 +158,11 @@ class TaskList:
                 return task
         return None
     
+    def get_last_task(self):
+        if len(self.tasks) > 0:
+            return self.tasks[-1]
+        return None
+    
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix="T"):
         self.tasks = []
         for i in range(num_tasks):

@@ -255,15 +255,8 @@ class TaskAllocator:
                 for i in range(len(sweep_task_list)):
                     k = 0
                     while k < len(sweep_task_list):
-                        # if this is the drone's first task, start from its current position
-                        if sweep_depth == 0:
-                            path1 = [sorted_drone_fleet[i].pos, sweep_task_list[i].pick_point]
-                            path2 = [sorted_drone_fleet[k].pos, sweep_task_list[k].pick_point]
-
-                        # If previous tasks, assume that the drone is navigating from the center of the region (last drop off)
-                        else:
-                            path1 = [r.center, sweep_task_list[i].pick_point]
-                            path2 = [r.center, sweep_task_list[k].pick_point]
+                        path1 = [sorted_drone_fleet[i].lookup_last_assigned_pos(), sweep_task_list[i].pick_point]
+                        path2 = [sorted_drone_fleet[k].lookup_last_assigned_pos(), sweep_task_list[k].pick_point]
                             
                         # If paths intersect, swap assigned endpoints
                         if intersect(path1[0], path1[1], path2[0], path2[1]):
@@ -283,14 +276,21 @@ class TaskAllocator:
 
                 # Assign tasks to drones and AMR's
                 for i, task in enumerate(sweep_task_list):
-                    # Split up task into two parts at handoff point (region center)
+                    # drone and AMR for this region and task id
+                    drone = sorted_drone_fleet[i]
+                    amr = r.fleet.get_robots_as_list(robot_type="AMR")[0]
+
+                    # Define handoff point as the floor under the closest drone pickup point
+                    # handoff_point = amr.
+
+                    # Split up task into two parts at handoff point
                     drone_task, amr_task = self.split_task_by_point(task, r.center)
 
                     # Add task to drone
-                    sorted_drone_fleet[i].add_task(drone_task)
+                    drone.add_task(drone_task)
 
                     # Add task to this region's AMR
-                    r.fleet.get_robots_as_list(robot_type="AMR")[0].add_task(amr_task)
+                    amr.add_task(amr_task)
 
                 sweep_depth += 1
 
@@ -333,16 +333,9 @@ class TaskAllocator:
             for i in range(len(sweep_task_list)):
                 k = 0
                 while k < len(sweep_task_list):
-                    # if this is the drone's first task, start from its current position
-                    if sweep_depth == 0:
-                        path1 = [agent_fleet[i].pos, sweep_task_list[i].pick_point]
-                        path2 = [agent_fleet[k].pos, sweep_task_list[k].pick_point]
+                    path1 = [agent_fleet[i].lookup_last_assigned_pos(), sweep_task_list[i].pick_point]
+                    path2 = [agent_fleet[k].lookup_last_assigned_pos(), sweep_task_list[k].pick_point]
 
-                    # If previous tasks, assume that the drone is navigating from the last drop off
-                    else:
-                        path1 = [agent_fleet[i].task_list.tasks[sweep_depth-1].drop_point, sweep_task_list[i].pick_point]
-                        path2 = [agent_fleet[i].task_list.tasks[sweep_depth-1].drop_point, sweep_task_list[k].pick_point]
-                        
                     # If paths intersect, swap assigned endpoints
                     if intersect(path1[0], path1[1], path2[0], path2[1]):
                         t1 = sweep_task_list[i]
