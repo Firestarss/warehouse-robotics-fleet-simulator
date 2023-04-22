@@ -208,5 +208,5 @@ class Visualizer:
                 t_start = bot.path_len(r_end=i)
                 self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
                                 self.color(bot_num), t_start, show_t=show_t)
-            bot_num += 1            bot_num += 1
+            bot_num += 1
             

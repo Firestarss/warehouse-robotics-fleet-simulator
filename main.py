@@ -5,6 +5,12 @@ from path_planning import *
 from task_allocation import *
 from visualization import *
 
+from pytictoc import TicToc
+import numpy as np
+import matplotlib.pyplot as plt
+
+t = TicToc()
+
 wh1_info = {
     "bin" : {
         "x" : 10,
@@ -14,12 +20,12 @@ wh1_info = {
     },
     "shelf" : {
         "x" : 2,
-        "y" : 5,
+        "y" : 10,
         "z" : 4
     },
     "warehouse" : {
-        "x" : 5,
-        "y" : 4,
+        "x" : 4,
+        "y" : 2,
         "z" : 60,
         "aisle_x" : 40,
         "aisle_y" : 30
@@ -30,29 +36,70 @@ wh1_info = {
     },
     "border_down" : {
         "padding" : 20,
-        "drop_points" : False
+        "drop_points" : True
     },
     "border_left" : {
         "padding" : 10,
-        "drop_points" : False
+        "drop_points" : True
     },
     "border_right" : {
         "padding" : 10,
-        "drop_points" : False
+        "drop_points" : True
     }
 }
 
+# TODO: No picks on first level
+# TODO: AMR pick point is under the closest drone target
+# TODO: Merge AMR task_list items into a single task per region.
+# TODO: Cap region size by some global carrying capacity number
+
+# drones = []
+# amrs = []
+# times = []
+
+# for amr_count in range(1, 50):
+#     for drone_count in range(1, 50):
+#         if drone_count >= amr_count:
+#             t.tic()
 wh1_map = WarehouseMap(wh1_info, resolution=0.1, units="ft")
 wh1_pick_points, wh1_drop_points = wh1_map.generate_points()
 # wh1_map.show_occ_matrix(0)
 
 rand_task_list = TaskList()
-rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 50)
+rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 10)
 # print(rand_task_list)
 
+
 fleet = Fleet()
-fleet.populate_by_composition([["Drone", 200], ["AMR", 10]], wh1_pick_points)
+fleet.populate_by_composition([["Drone", 10], ["AMR", 3]], wh1_pick_points)
 print(fleet)
+
+allocator = TaskAllocator(rand_task_list, fleet)
+allocator.populate_fleet(allocation_type="regional")
+            
+# drones.append(drone_count)
+# amrs.append(amr_count)
+# times.append(t.tocvalue())
+
+# x = np.asarray(drones)
+# y = np.asarray(amrs)
+# z = np.asarray(times)
+
+# print(z)
+
+# fig = plt.figure()
+
+# ax = fig.add_subplot(111, projection='3d')
+
+# ax.scatter(x,y,z)
+
+# ax.set_xlabel('# Drones')
+# ax.set_ylabel('# AMRS')
+# ax.set_zlabel('t')
+
+# ax.set_zlim(0, 0.04)
+
+# plt.show()
 
 # print(fleet.get_robots_as_list("Drone"))
 
@@ -70,10 +117,9 @@ print(fleet)
 # print(fleet.robots["Drone"]["D0"].path)
 # print(fleet.closest_robots_at_end_path(Point(20,15,5), "Drone"))
 
+# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
+# task_visualizer.show()
 
-task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off")
-task_visualizer.show()
 
-
-path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
+path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off", show_t=True)
 path_visualizer.show()
