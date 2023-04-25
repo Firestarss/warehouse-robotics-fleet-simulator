@@ -116,6 +116,9 @@ class Task:
                 robot = "None"
             else: robot = self.assigned_robot.robot_id
             return f"Task('{self.task_id}', {self.pick_point}, {self.drop_points}, robot={robot}, started={self.started}, picked={self.picked}, done={self.done})"
+    
+    def drop_point(self):
+        return self.drop_points[0]
 
 class TaskList:
     def __init__(self, tasks=None):

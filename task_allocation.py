@@ -40,7 +40,7 @@ class Region:
         drone_task = Task(task.task_id, task.pick_point, self.pick_point)
         
         # Save second half of task for merging later
-        self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_points[0]))
+        self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_point()))
 
         return drone_task
     
@@ -52,10 +52,10 @@ class Region:
         and assign to AMR
         """
         # Order drop points to be visited ccw
-        sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_points[0].y - self.center.y, task.drop_points[0].x - self.center.x))
+        sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_point().y - self.center.y, task.drop_point().x - self.center.x))
 
         # Give task regional id and drop points list
-        task = Task(f"{self.id}", self.pick_point, [task.drop_points[0] for task in sorted_tasks])
+        task = Task(f"{self.id}", self.pick_point, [task.drop_point() for task in sorted_tasks])
 
         # Assign extended task to regional AMR
         self.fleet.get_robots_as_list(robot_type="AMR")[0].add_task(task)
