@@ -52,7 +52,7 @@ wh1_info = {
 # DONE: Create a better way to get the last assigned position from a robot
 # DONE: AMR pick point is under the closest drone target
 # DONE: Merge AMR task_list items into a single task per region.
-# TODO: Cap region size by some global carrying capacity number
+# TODO?: Cap region size by some global carrying capacity number
 
 # drones = []
 # amrs = []
@@ -67,16 +67,16 @@ wh1_pick_points, wh1_drop_points = wh1_map.generate_points()
 # wh1_map.show_occ_matrix(0)
 
 rand_task_list = TaskList()
-rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 20)
+rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 100)
 # print(rand_task_list)
 
 
 fleet = Fleet()
-fleet.populate_by_composition([["Drone", 50], ["AMR", 10]], wh1_pick_points)
+fleet.populate_by_composition([["Drone", 20], ["AMR", 5]], wh1_pick_points)
 print(fleet)
 
 allocator = TaskAllocator(rand_task_list, fleet)
-allocator.populate_fleet(allocation_type="regional")
+allocator.populate_fleet(allocation_type="regional_base")
             
 # drones.append(drone_count)
 # amrs.append(amr_count)
