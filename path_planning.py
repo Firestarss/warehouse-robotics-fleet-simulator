@@ -150,7 +150,8 @@ class PathPlanner:
 
                 heapq.heappush(open_list, child)
 
-        print(f"{terminal_colors['FAIL']}No path found: {start} --> {end} || {start_cell} --> {end_cell} || {debug_info}{terminal_colors['ENDC']}")
+        print(f"{terminal_colors['FAIL']}{f'No path found: {start} --> {end}'.ljust(55)}{f'|| {start_cell} --> {end_cell}'.ljust(35)}|| {debug_info}{terminal_colors['ENDC']}")
+
         return None
     
     def calc_a_star_path_without_collisions(self, start: Point, end: Point, debug_info = None):
@@ -193,6 +194,7 @@ class PathPlanner:
         return [self.map.cell_to_point_center(node) for node in path]
 
     def temp_plan_all_paths(self, alg = "a*"):
+        failed_cells = []
         algorithms = {
             "a*": self.calc_a_star_path,
             "a*_no_col": self.calc_a_star_path_without_collisions
@@ -205,14 +207,20 @@ class PathPlanner:
             for task in robot.task_list.tasks:
                 debug_info = [task.task_id, task.assigned_robot.robot_id]
                 path_segment = path_planning_alg(task.pick_point, task.drop_point, debug_info = debug_info)
+                if path_segment is None:
+                    failed_cells += [self.map.point_to_cell(task.pick_point), self.map.point_to_cell(task.drop_point)]
                 robot.add_path_segment(path_segment)
                 task.picked = True
                 task.done = True
                 next_task = robot.get_next_task()
                 if next_task:
                     path_segment = path_planning_alg(task.drop_point, next_task.pick_point, debug_info = debug_info)
+                    if path_segment is None:
+                        failed_cells += [self.map.point_to_cell(task.drop_point), self.map.point_to_cell(next_task.pick_point)]
                     robot.add_path_segment(path_segment)
                     next_task.started = True
+
+        return failed_cells
 
     
     # def plan_all_paths(self):
