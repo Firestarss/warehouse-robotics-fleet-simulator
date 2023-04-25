@@ -96,11 +96,11 @@ class CellZone(Zone):
         return f"CellZone({self.x_lims}, {self.y_lims}, {self.z_lims})"
 
 class Task: 
-    def __init__(self, task_id, pick_point, drop_point, 
+    def __init__(self, task_id, pick_point, drop_points, 
                  robot=None, started=False, picked=False, done=False):
         self.task_id = task_id
         self.pick_point = pick_point
-        self.drop_point = drop_point
+        self.drop_points = [drop_points] if type(drop_points) is not list else drop_points
         self.assigned_robot = robot
         self.started = started
         self.picked = picked
@@ -110,12 +110,15 @@ class Task:
     
     def __repr__(self):
         if self.assigned_robot == None:
-            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point})"
+            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_points})"
         else:
             if self.assigned_robot == None:
                 robot = "None"
             else: robot = self.assigned_robot.robot_id
-            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_point}, robot={robot}, started={self.started}, picked={self.picked}, done={self.done})"
+            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_points}, robot={robot}, started={self.started}, picked={self.picked}, done={self.done})"
+    
+    def drop_point(self):
+        return self.drop_points[0]
 
 class TaskList:
     def __init__(self, tasks=None):
@@ -156,6 +159,11 @@ class TaskList:
         for task in self.tasks:
             if not task.started:
                 return task
+        return None
+    
+    def get_last_task(self):
+        if len(self.tasks) > 0:
+            return self.tasks[-1]
         return None
     
     def populate_randomly(self, pick_points, drop_points, num_tasks, task_id_prefix="T"):

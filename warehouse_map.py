@@ -96,20 +96,23 @@ class WarehouseMap:
         # performed by loop through shelf rows to avoid populating isles
         pick_ys = []
         for row in range(self.count_y):
+            # Y start of first pick point on shelves
             y_anchor = row * (self.shelf_y+self.aisle_y) + y_range[0]
 
-            pick_ys_row = np.arange(y_anchor+buffer, y_anchor+self.shelf_y, self.bin_y)
+            pick_ys_row = np.arange(self.bin_y/2, self.shelf_y, self.bin_y) + y_anchor
 
             pick_ys.extend(list(pick_ys_row))
 
 
         # Populate pick_xs: a list of possible pick point x values
         # performed by contatenation of 2 lists for the front and rear side of each shelf
-        pick_xs_1 = np.arange(x_range[0]-buffer,              x_range[1], self.shelf_x+self.aisle_x)
-        pick_xs_2 = np.arange(x_range[0]+buffer+self.shelf_x, x_range[1], self.shelf_x+self.aisle_x)
+        pick_xs_1 = np.arange(x_range[0], x_range[1], self.shelf_x+self.aisle_x) - buffer
+        pick_xs_2 = np.arange(x_range[0], x_range[1], self.shelf_x+self.aisle_x) + buffer + self.shelf_x
         pick_xs = list(np.append(pick_xs_1, pick_xs_2))
         
-        pick_zs = np.arange(5,z_range[1],10)
+        # Populate pick_zs
+        # Add points in the middle of every bin, but skip the bottom row (AMR's will drive there instead)
+        pick_zs = np.arange(self.bin_z/2 + self.bin_z,z_range[1],self.bin_z)
 
         for k in pick_zs:
             for j in pick_ys:

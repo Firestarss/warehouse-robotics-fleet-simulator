@@ -36,22 +36,23 @@ wh1_info = {
     },
     "border_down" : {
         "padding" : 20,
-        "drop_points" : True
+        "drop_points" : False
     },
     "border_left" : {
         "padding" : 10,
-        "drop_points" : True
+        "drop_points" : False
     },
     "border_right" : {
         "padding" : 10,
-        "drop_points" : True
+        "drop_points" : False
     }
 }
 
-# TODO: No picks on first level
-# TODO: AMR pick point is under the closest drone target
-# TODO: Merge AMR task_list items into a single task per region.
-# TODO: Cap region size by some global carrying capacity number
+# DONE: No picks on first level
+# DONE: Create a better way to get the last assigned position from a robot
+# DONE: AMR pick point is under the closest drone target
+# DONE: Merge AMR task_list items into a single task per region.
+# TODO?: Cap region size by some global carrying capacity number
 
 # drones = []
 # amrs = []
@@ -66,18 +67,16 @@ wh1_pick_points, wh1_drop_points = wh1_map.generate_points()
 # wh1_map.show_occ_matrix(0)
 
 rand_task_list = TaskList()
-rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 10)
-rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 10)
+rand_task_list.populate_randomly(wh1_pick_points, wh1_drop_points, 100)
 # print(rand_task_list)
 
 
 fleet = Fleet()
-fleet.populate_by_composition([["Drone", 10], ["AMR", 3]], wh1_pick_points)
-fleet.populate_by_composition([["Drone", 5], ["AMR", 2]], wh1_pick_points)
+fleet.populate_by_composition([["Drone", 20], ["AMR", 5]], wh1_pick_points)
 print(fleet)
 
 allocator = TaskAllocator(rand_task_list, fleet)
-allocator.populate_fleet(allocation_type="regional")
+allocator.populate_fleet(allocation_type="regional_base")
             
 # drones.append(drone_count)
 # amrs.append(amr_count)
@@ -105,12 +104,12 @@ allocator.populate_fleet(allocation_type="regional")
 
 # print(fleet.get_robots_as_list("Drone"))
 
-path_planner = PathPlanner(wh1_map, fleet)
-path_planner.temp_plan_all_paths()
+# path_planner = PathPlanner(wh1_map, fleet)
+# path_planner.temp_plan_all_paths()
 
-# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
-# task_visualizer.show()
+task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
+task_visualizer.show()
 
 
-path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off", show_t=True)
-path_visualizer.show()
+# path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off", show_t=True)
+# path_visualizer.show()
