@@ -57,7 +57,7 @@ class Robot:
         """
         last_task = self.task_list.get_last_task()
         if last_task:
-            return last_task.drop_point
+            return last_task.drop_points[-1]
         return self.pos
 
     def add_task(self, task):

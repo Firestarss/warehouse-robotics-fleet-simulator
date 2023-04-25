@@ -2,13 +2,14 @@ from utils import *
 from warehouse_map import *
 from robot_fleet import *
 from sklearn.cluster import KMeans
+from k_means_constrained import KMeansConstrained
 
 """
 1. Group tasks such that each local group gets one AMR. Every AMR must be used.
 2. Assign AMR to go to kmeans centroid
 3. Assign a drone to each group and balance allocation based on task list length
 4. Assign tasks to agents splitting each into nearest drone and AMR
-"""     
+"""
 
 class Region:
     def __init__(self, id, center, task_list, fleet):
@@ -17,11 +18,37 @@ class Region:
         self.task_list = task_list
         self.fleet = fleet
 
+        # Handoff point between Drones and AMR's for this region (used to be region centroid but is now based on closest task)
+        self.pick_point = None
+
+        # List of AMR tasks held so that they can be merged at the end of task allocation
+        self.amr_tasks = None
+
     def __repr__(self):
         return (f"Region(id={self.id}\n" + 
                 f"    center={self.center},\n" +
                 f"    task_list={self.task_list},\n" +
                 f"    fleet={self.fleet})")
+    
+    def crop_drone_task(self, task):
+        # Drone task is to pick at the task pick point and drop at the region pick point   
+        drone_task = Task(task.task_id, task.pick_point, self.pick_point)
+        
+        # Save second half of task for merging later
+        self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_points[0]))
+
+        return drone_task
+    
+    def merge_amr_tasks(self):
+        amr = self.fleet.get_robots_as_list(robot_type="AMR")[0]
+
+        # TODO: order drop points to be visited cw or ccw
+        sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_points[0].y - self.center.y, task.drop_points[0].x - self.center.x))
+
+        drop_points = [task.drop_points[0] for task in sorted_tasks]
+
+        # give task regional id
+        amr.add_task(Task(f"{self.id}", self.pick_point, drop_points))
 
 class TaskAllocator:
     def __init__(self, task_list, fleet):
@@ -87,29 +114,35 @@ class TaskAllocator:
 
         return False
     
-    def split_task_by_point(self, task, point):        
-        drone_task = Task(task.task_id, task.pick_point, point)
-        
-        amr_task = Task(task.task_id, point, task.drop_point)
-
-        return drone_task, amr_task
-    
     def create_Regions(self):
         """
         Create regions equal to the number ground agents
         Each region is initialized with an id, 
         """
         # group using xy coordinates -> do not care about z height for grouping
-        flattened_pick_points = [[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks]
+        flattened_pick_points = [[task.pick_point.x, task.pick_point.y, task.drop_points[0].x, task.drop_points[0].y] for task in self.task_list.tasks]
         
-        # Use example if weighting is desired between clusters and tasks
         # kmeans = KMeans(n_clusters=n_ground_agents, random_state=0).fit(w_vector_array[:,0:2], sample_weight = w_vector_array[:,2])
         KM_tasks = KMeans(
                     n_clusters=len(self.ground_agents),
                     random_state=0,
                     n_init='auto'
                 ).fit(flattened_pick_points)
+
+        # carrying_capacity = 10
+
+        # n_regions = math.ceil(len(flattened_pick_points) / carrying_capacity)
         
+        # KM_tasks = KMeansConstrained(
+        #             n_clusters=n_regions,
+        #             size_min=2,
+        #             size_max = 10,
+        #             random_state=0
+        #         )
+        # print("POINT LENGTH = ", len(flattened_pick_points))
+        # print("KM CHECK = ", n_regions)
+        # KM_tasks.fit_predict(flattened_pick_points)
+
         for i, agent in enumerate(self.ground_agents):
             # Cast the cluster centers as 3D Points with height 5
             center = Point(int(KM_tasks.cluster_centers_[i][0]), int(KM_tasks.cluster_centers_[i][1]), 5)
@@ -227,6 +260,15 @@ class TaskAllocator:
         dist_post = 0
 
         for r in self.regions:
+            r.amr_tasks = []
+
+            # AMR for this region
+            amr = r.fleet.get_robots_as_list(robot_type="AMR")[0]
+
+            # Define pick point for this region as the floor under the pick point closest to the AMR's initial position
+            closest_task_to_amr = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, amr.lookup_last_assigned_pos()))
+            r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 5)
+
             # Sort drones by distance to center of region
             sorted_drone_fleet = sorted(r.fleet.get_robots_as_list(robot_type="Drone"), key=lambda x: manhattan_dist(x.pos, r.center))
             # sorted_drone_fleet = r.fleet.get_robots_as_list(robot_type="Drone")
@@ -234,9 +276,6 @@ class TaskAllocator:
             # Sort tasks by inverse distance to the center of region
             unclaimed_tasks = sorted(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, r.center), reverse=True)
             # unclaimed_tasks = r.task_list.tasks
-
-            # Sweep depth keeps track of how many times we sweep through the fleet to assign tasks
-            sweep_depth = 0
 
             # A sorted list of TaskLists corresponding to the sorted droned fleet
             while unclaimed_tasks:
@@ -276,23 +315,21 @@ class TaskAllocator:
 
                 # Assign tasks to drones and AMR's
                 for i, task in enumerate(sweep_task_list):
-                    # drone and AMR for this region and task id
+                    # drone for this task id
                     drone = sorted_drone_fleet[i]
-                    amr = r.fleet.get_robots_as_list(robot_type="AMR")[0]
-
-                    # Define handoff point as the floor under the closest drone pickup point
-                    # handoff_point = amr.
 
                     # Split up task into two parts at handoff point
-                    drone_task, amr_task = self.split_task_by_point(task, r.center)
+                    # drone_task, amr_task = self.split_task_by_point(task, handoff_point)
+
+                    drone_task = r.crop_drone_task(task)
 
                     # Add task to drone
                     drone.add_task(drone_task)
 
                     # Add task to this region's AMR
-                    amr.add_task(amr_task)
+                    # amr.add_task(amr_task)
 
-                sweep_depth += 1
+            r.merge_amr_tasks()
 
         print(f"DRONE assignment distance optimized: {dist_prior} -> {dist_post} (ft)")
 
@@ -312,9 +349,6 @@ class TaskAllocator:
         
         # Sort tasks by inverse distance to the center of region
         unclaimed_tasks = self.task_list.tasks
-
-        # Sweep depth keeps track of how many times we sweep through the fleet to assign tasks
-        sweep_depth = 0
 
         # A sorted list of TaskLists corresponding to the sorted droned fleet
         while unclaimed_tasks:
@@ -354,7 +388,5 @@ class TaskAllocator:
 
             # Assign tasks to fleet
             [agent_fleet[i].add_task(task) for i, task in enumerate(sweep_task_list)]
-
-            sweep_depth += 1
 
         print(f"Homogeneous fleet assignment distance optimized: {dist_prior} -> {dist_post} (ft)")

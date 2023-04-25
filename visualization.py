@@ -114,11 +114,11 @@ class Visualizer:
                 task_num = int(tasks[i].task_id[1:])
                 marker_size = np.linspace(10,5, len(tasks))
                 pick_str = tasks[i].pick_point.as_str()
-                drop_str = tasks[i].drop_point.as_str()
+                drop_str = tasks[i].drop_points[0].as_str()
                 self.fig.add_scatter3d(
-                    x=[tasks[i].pick_point.x,tasks[i].drop_point.x], 
-                    y=[tasks[i].pick_point.y,tasks[i].drop_point.y], 
-                    z=[tasks[i].pick_point.z,tasks[i].drop_point.z], 
+                    x=[tasks[i].pick_point.x,tasks[i].drop_points[0].x], 
+                    y=[tasks[i].pick_point.y,tasks[i].drop_points[0].y], 
+                    z=[tasks[i].pick_point.z,tasks[i].drop_points[0].z], 
                     mode='lines',
                     marker=dict(color=self.color(task_num)), 
                     name=f"Task {tasks[i].task_id}")
@@ -131,9 +131,9 @@ class Visualizer:
                     name=f"Pick {tasks[i].task_id}: {pick_str}",
                     text=[tasks[i].task_id])
                 self.fig.add_scatter3d(
-                    x=[tasks[i].drop_point.x], 
-                    y=[tasks[i].drop_point.y], 
-                    z=[tasks[i].drop_point.z], 
+                    x=[tasks[i].drop_points[0].x], 
+                    y=[tasks[i].drop_points[0].y], 
+                    z=[tasks[i].drop_points[0].z], 
                     mode='markers',
                     marker=dict(color=self.color(task_num), size=marker_size[i],
                                 symbol='square'), 
@@ -143,9 +143,9 @@ class Visualizer:
             for i in range(len(tasks)):
                 pick_str = tasks[i].pick_point.as_str()
                 self.fig.add_scatter3d(
-                    x=[tasks[i].pick_point.x,tasks[i].drop_point.x], 
-                    y=[tasks[i].pick_point.y,tasks[i].drop_point.y], 
-                    z=[tasks[i].pick_point.z,tasks[i].drop_point.z], 
+                    x=[tasks[i].pick_point.x,tasks[i].drop_points[0].x], 
+                    y=[tasks[i].pick_point.y,tasks[i].drop_points[0].y], 
+                    z=[tasks[i].pick_point.z,tasks[i].drop_points[0].z], 
                     mode='lines+markers',
                     marker=dict(color=color, size=marker_size, symbol='square'),
                     name=f"Task {tasks[i].task_id}")
