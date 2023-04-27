@@ -84,7 +84,7 @@ class PathPlanner:
             path.append(cur_node.get_position())
             self.occupied_nodes.add(cur_node.get_position())
             cur_node = cur_node.parent
-            
+
         return [self.map.cell_to_point_center(Cell(x, y, z)) for x,y,z,_ in path[::-1]]
     
     def calc_ca_star_path(self, start: Point, end: Point, start_time: int, end_time: int, robot_type: str):
@@ -157,7 +157,7 @@ class PathPlanner:
 
                 heapq.heappush(open_list, child)
 
-        print(f"{terminal_colors['FAIL']}{f'No path found: {start} --> {end}'.ljust(55)}{f'|| {start_cell} --> {end_cell}'.ljust(35)}|| {debug_info}{terminal_colors['ENDC']}")
+        print(f"{terminal_colors['FAIL']}{f'No path found: {start} --> {end}'.ljust(55)}{f'|| {start_cell} --> {end_cell}'.ljust(35)}")
 
         return None
 
