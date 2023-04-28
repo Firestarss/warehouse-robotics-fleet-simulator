@@ -97,12 +97,11 @@ class CellZone(Zone):
 
 class Task: 
     def __init__(self, task_id, pick_point, drop_points, 
-                 robot=None, started=False, picked=False, done=False):
+                 robot=None, picked=False, done=False):
         self.task_id = task_id
         self.pick_point = pick_point
         self.drop_points = [drop_points] if type(drop_points) is not list else drop_points
         self.assigned_robot = robot
-        self.started = started
         self.picked = picked
         self.done = done
         self.start_time = None
