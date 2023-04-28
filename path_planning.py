@@ -102,8 +102,11 @@ class PathPlanner:
 
         heapq.heapify(open_list)
 
-        z_options = [-1,0,1] if robot_type.lower().startswith("d") else [0]
-        adjacent_deltas = set(itertools.product([-1,0,1], [-1,0,1], z_options, [1]))
+        if robot_type.lower().startswith("d"):
+            adjacent_deltas = set(itertools.product([-1,0,1], [-1,0,1], [-1,0,1], [1]))
+        else:
+            adjacent = [(0,0), (1,0), (-1,0), (0,1), (0,-1)]
+            adjacent_deltas = set((x,y,0,1) for x,y in adjacent)
 
         x_lim = self.map.wh_zone.x_lims[1] * self.map.resolution
         y_lim = self.map.wh_zone.y_lims[1] * self.map.resolution
@@ -133,7 +136,9 @@ class PathPlanner:
 
                 # Check if position collides with shelves or planned paths
                 cur_cell = Cell(neighbor[0], neighbor[1], neighbor[2])
-                if self.map.cell_blocked(cur_cell) or neighbor in self.occupied_nodes:
+                lookahead = tuple(neighbor[i]+int(i==3) for i in range(len(neighbor)))
+                robot_to_robot_collision = [node in self.occupied_nodes for node in [neighbor, lookahead]]
+                if self.map.cell_blocked(cur_cell) or True in robot_to_robot_collision:
                     continue
 
                 # Create and add new node to children
