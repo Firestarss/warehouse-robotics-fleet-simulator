@@ -75,8 +75,19 @@ fleet = Fleet()
 fleet.populate_by_composition([["Drone", 20], ["AMR", 5]], wh1_pick_points)
 print(fleet)
 
-allocator = TaskAllocator(rand_task_list, fleet)
-allocator.populate_fleet(allocation_type="regional_base")
+# allocator = TaskAllocator(rand_task_list, fleet)
+# allocator.populate_fleet(allocation_type="regional_base")
+
+task_allocator = TaskAllocator(rand_task_list, fleet, allocation_type="homogeneous", resolution=wh1_map.resolution)
+
+path_planner = PathPlanner(wh1_map, fleet)
+
+for r in task_allocator.regions:
+    
+    task_allocator.allocate_tasks(r)
+
+    # path_planner.temp_plan_all_paths()
+
             
 # drones.append(drone_count)
 # amrs.append(amr_count)
