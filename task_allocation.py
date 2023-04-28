@@ -68,16 +68,12 @@ class Region:
 # ============================================================================================================
 
 class TaskAllocator:
-    def __init__(self, task_list, fleet, allocation_type="regional_base", resolution=0.1):
+    def __init__(self, task_list, fleet, resolution, allocation_type="regional_base"):
         self.task_list = task_list
         
         self.fleet = fleet
 
         self.resolution = resolution
-
-        self.ground_agents = self.fleet.get_robots_as_list(robot_type="AMR")
-
-        self.drone_agents = self.fleet.get_robots_as_list(robot_type="Drone")
 
         self.regions = []
 
@@ -85,18 +81,62 @@ class TaskAllocator:
             return
         
         type_options = {
-            "homogeneous":
-                (self.create_homogeneous_region, self.manual_dropoff)
-            # "regional_base" : self.regional_base_allocation,
-            # "regional_biased_pick" : self.regional_biased_pick_allocation,
-            # "regional_hypercluster" : self.regional_hypercluster_allocation
+            "homogeneous":(
+                self.homogeneous_region,
+                self.no_handoff
+                ),
+            "AMR_regions_center_handoff":(
+                self.AMR_regions,
+                self.center_handoff
+                ),
+            "AMR_regions_center_handoff_hypercluster":(
+                self.AMR_regions_hypercluster,
+                self.center_handoff
+                ),
+            "sized_regions_center_handoff":(
+                self.sized_regions,
+                self.center_handoff
+                ),
+            "sized_regions_center_handoff_hypercluster":(
+                self.sized_regions_hypercluster,
+                self.center_handoff
+                ),
+            "AMR_regions_closest2AMR_handoff":(
+                self.AMR_regions,
+                self.closest2AMR_handoff
+                ),
+            "AMR_regions_closest2AMR_handoff_hypercluster":(
+                self.AMR_regions_hypercluster,
+                self.closest2AMR_handoff
+                ),
+            "sized_regions_closest2AMR_handoff":(
+                self.sized_regions,
+                self.closest2AMR_handoff
+                ),
+            "sized_regions_closest2AMR_handoff_hypercluster":(
+                self.sized_regions_hypercluster,
+                self.closest2AMR_handoff
+                ),
+            "AMR_regions_closest2drop_handoff":(
+                self.AMR_regions,
+                self.closest2drop_handoff
+                ),
+            "AMR_regions_closest2drop_handoff_hypercluster":(
+                self.AMR_regions_hypercluster,
+                self.closest2drop_handoff
+                ),
+            "sized_regions_closest2drop_handoff":(
+                self.sized_regions,
+                self.closest2drop_handoff
+                ),
+            "sized_regions_closest2drop_handoff_hypercluster":(
+                self.sized_regions_hypercluster,
+                self.closest2drop_handoff
+                )
         }
 
         (self.cluster_regions, self.allocate_tasks) = type_options[allocation_type]
 
-        # The region function defines the tasks and AMR's assigned to a region
-        self.cluster_regions()
-        
     def __repr__(self):
         return (f"TaskAllocator(task_list={self.task_list}\n" + 
                 f"    fleet={self.fleet},\n" +
@@ -104,8 +144,8 @@ class TaskAllocator:
     
     def check_for_input_error(self):
         n_tasks = len(self.task_list.tasks)
-        n_ground = len(self.ground_agents)
-        n_drone = len(self.drone_agents)
+        n_ground = len(self.fleet.get_robots_as_list(robot_type="AMR"))
+        n_drone = len(self.fleet.get_robots_as_list(robot_type="Drone"))
         
         if n_tasks < n_ground:
             print(f"TASK ALLOCATION WARNING: # of ground agents '{n_ground}' cannot exceed # of tasks '{n_tasks}'")
@@ -116,50 +156,26 @@ class TaskAllocator:
 
         return False
 
-
 # ============================================================================================================
-# High Level Allocation functions
+# HIGH-LEVEL Region Clustering functions
 
-    def drone_allocation(self):
-        self.assign_Tasks2Fleet_homogeneous(robot_type="Drone")
+    def homogeneous_region(self):
+        self.create_homogeneous_region()
 
-    def amr_allocation(self):
-        self.assign_Tasks2Fleet_homogeneous(robot_type="AMR")
+    def AMR_regions(self):
+        self.create_AMR_regions(hyperclustering=False)
 
-    def homogeneous_allocation(self):
-        
-    
-    def regional_base_allocation(self):
-        self.create_Regions(hyperclustering=False)
+    def AMR_regions_hypercluster(self):
+        self.create_AMR_regions(hyperclustering=True)
 
-        self.assign_AMRs2Regions(pick_at_first_task=False)
+    def sized_regions(self):
+        self.create_sized_regions(hyperclustering=False)
 
-        self.assign_Drones2Regions()
+    def sized_regions_hypercluster(self):
+        self.create_sized_regions(hyperclustering=True)
 
-        self.assign_Tasks2Agents()
-
-    def regional_biased_pick_allocation(self):
-        self.create_Regions(hyperclustering=False)
-
-        self.assign_AMRs2Regions(pick_at_first_task=True)
-
-        self.assign_Drones2Regions()
-
-        self.assign_Tasks2Agents()
-    
-    def regional_hypercluster_allocation(self):
-        self.create_Regions(hyperclustering=True)
-
-        self.assign_AMRs2Regions(pick_at_first_task=False)
-
-        self.assign_Drones2Regions()
-
-        self.assign_Tasks2Agents()
-
-# High Level Allocation functions
+# HIGH-LEVEL Region Clustering functions
 # ============================================================================================================
-
-
 
 # ============================================================================================================
 # Region Clustering functions
@@ -190,53 +206,26 @@ class TaskAllocator:
         # Add to region list
         self.regions.append(r)
     
-    def create_AMR_regions(self):
+    def create_AMR_regions(self, hyperclustering=False):
         """
         Create regions equal to the number ground agents
         Each region is initialized with an id, 
         """
         # group using xy coordinates -> do not care about z height for grouping
-        flattened_pick_points = [[task.pick_point.x, task.pick_point.y, task.drop_points[0].x, task.drop_points[0].y] for task in self.task_list.tasks]
+        if hyperclustering:
+            flattened_pick_points = [[task.pick_point.x, task.pick_point.y, task.drop_points[0].x, task.drop_points[0].y] for task in self.task_list.tasks]
+        else:
+            flattened_pick_points = [[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks]
         
+        n_ground_agents = len(self.fleet.get_robots_as_list(robot_type="AMR"))
+
         KM_tasks = KMeans(
-                    n_clusters=len(self.ground_agents),
+                    n_clusters=n_ground_agents,
                     random_state=0,
                     n_init='auto'
                 ).fit(flattened_pick_points)
 
-        for i in len(self.ground_agents):
-            # Cast the cluster centers as 3D Points with height 5
-            center = Point(int(KM_tasks.cluster_centers_[i][0]), int(KM_tasks.cluster_centers_[i][1]), 5)
-
-            # Split the total task list into regional task lists using kmeans labels
-            region_tasks =  [task for k, task in enumerate(self.task_list.tasks) if (KM_tasks.labels_[k] == i)]
-
-            # Create new region
-            r = Region(
-                    id=f"R{i}",
-                    center=center,
-                    task_list=TaskList(region_tasks),
-                    fleet=Fleet({"AMR":{}, "Drone":{}})
-                )
-            
-            # Add to region list
-            self.regions.append(r)
-    
-    def create_AMR_regions_hypercluster(self):
-        """
-        Create regions equal to the number ground agents
-        Each region is initialized with an id, 
-        """
-        # group using xy coordinates -> do not care about z height for grouping
-        flattened_pick_points = [[task.pick_point.x, task.pick_point.y, task.drop_points[0].x, task.drop_points[0].y] for task in self.task_list.tasks]
-        
-        KM_tasks = KMeans(
-                    n_clusters=len(self.ground_agents),
-                    random_state=0,
-                    n_init='auto'
-                ).fit(flattened_pick_points)
-
-        for i in len(self.ground_agents):
+        for i in n_ground_agents:
             # Cast the cluster centers as 3D Points with height 5
             center = Point(int(KM_tasks.cluster_centers_[i][0]), int(KM_tasks.cluster_centers_[i][1]), 5)
 
@@ -260,44 +249,10 @@ class TaskAllocator:
         Each region is initialized with an id, 
         """
         # group using xy coordinates -> do not care about z height for grouping
-        flattened_pick_points = [[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks]
-
-        carrying_capacity = 10
-
-        n_regions = math.ceil(len(flattened_pick_points) / carrying_capacity)
-        
-        KM_tasks = KMeansConstrained(
-                    n_clusters=n_regions,
-                    size_min=2,
-                    size_max = 10,
-                    random_state=0
-                )
-
-        for i in range(n_regions):
-            # Cast the cluster centers as 3D Points with height 5
-            center = Point(int(KM_tasks.cluster_centers_[i][0]), int(KM_tasks.cluster_centers_[i][1]), 5)
-
-            # Split the total task list into regional task lists using kmeans labels
-            region_tasks =  [task for k, task in enumerate(self.task_list.tasks) if (KM_tasks.labels_[k] == i)]
-
-            # Create new region
-            r = Region(
-                    id=f"R{i}",
-                    center=center,
-                    task_list=TaskList(region_tasks),
-                    fleet=Fleet({"AMR":{}, "Drone":{}})
-                )
-            
-            # Add to region list
-            self.regions.append(r)
-
-    def create_sized_regions_hypercluster(self):
-        """
-        Create regions equal to the number ground agents
-        Each region is initialized with an id, 
-        """
-        # group using xy coordinates -> do not care about z height for grouping
-        flattened_pick_points = [[task.pick_point.x, task.pick_point.y, task.drop_points[0].x, task.drop_points[0].y] for task in self.task_list.tasks]
+        if hyperclustering:
+            flattened_pick_points = [[task.pick_point.x, task.pick_point.y, task.drop_points[0].x, task.drop_points[0].y] for task in self.task_list.tasks]
+        else:
+            flattened_pick_points = [[task.pick_point.x, task.pick_point.y] for task in self.task_list.tasks]
 
         carrying_capacity = 10
 
@@ -332,54 +287,56 @@ class TaskAllocator:
 # ============================================================================================================
 
 # ============================================================================================================
+# HIGH-LEVEL Task Allocation functions
+    def no_handoff(self, r):
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+    
+    def center_handoff(self, r):
+        self.allocate_AMR2Region(r, pick_point="center")
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+
+    def closest2AMR_handoff(self, r):
+        self.allocate_AMR2Region(r, pick_point="closest2AMR")
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+
+    def closest2drop_handoff(self, r):
+        self.allocate_AMR2Region(r, pick_point="closest2drop")
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+
+# HIGH-LEVEL Task Allocation functions
+# ============================================================================================================
+
+# ============================================================================================================
 # Task Allocation functions
 
-    def assign_AMRs2Regions(self, pick_at_first_task=False):
+    def allocate_AMR2Region(self, r, pick_point="center"):
         """
         Assign AMR's to Regions by checking if paths to their destinations overlap
         Switch any overlapping paths to get an approximated optimal allocation
         """
+        # AMR allocated to this region
+        closest_AMR = self.fleet.closest_robots_at_end_path(r.center, robot_type="AMR")
 
-        # Logging variable keeps track of drone travel distance prior to optimization
-        dist_prior = sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])
+        # Assign pick points for each region after AMR has been assigned
+        if pick_point == "center":
+            r.pick_point = Point(r.center.x, r.center.y, 1.5 * 1/self.resolution)
 
-        for i in range(len(self.regions)):
-            k = 0            
-            while k < len(self.regions):
-                # Must be converted to list to index the first value
-                amr1 = list(self.regions[i].fleet.robots["AMR"].values())[0]
-                amr2 = list(self.regions[k].fleet.robots["AMR"].values())[0]
+        elif pick_point == "closest2AMR":
+            closest_task_to_amr = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, closest_AMR.lookup_last_assigned_pos()))
+            
+            r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 1.5 * 1/self.resolution)
+        
+        elif pick_point == "closest2drop":
+            closest_task_to_drop = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, x.drop_point()))
 
-                # AMR -> region centers: start and end points
-                path1 = [amr1.pos, self.regions[i].center]
-                path2 = [amr2.pos, self.regions[k].center]
+            r.pick_point = Point(closest_task_to_drop.pick_point.x, closest_task_to_drop.pick_point.y, 1.5 * 1/self.resolution)
 
-                # If region-to-agent paths intersect, swap assigned agents
-                if intersect(path1[0], path1[1], path2[0], path2[1]):
-                    self.regions[i].fleet.robots["AMR"] = {amr2.robot_id:amr2}
-                    self.regions[k].fleet.robots["AMR"] = {amr1.robot_id:amr1}
-                    
-                    # Restart nested loop for every intersection to check back over previous paths
-                    k = 0
-                else:
-                    k += 1
-
-        # Assign pick points for each region after all AMR's have been assigned
-        for r in self.regions:
-            if pick_at_first_task:
-                # AMR for this region
-                amr = r.fleet.get_robots_as_list(robot_type="AMR")[0]
-
-                # Define pick point for this region as the floor under the pick point closest to the AMR's initial position
-                closest_task_to_amr = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, amr.lookup_last_assigned_pos()))
-                r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 5)
-            else:
-                r.pick_point = r.center
-
-        # Logging variable keeps track of drone travel distance post optimization
-        dist_post = sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])
-
-        print(f"AMR assignment distance optimized: {dist_prior} -> {dist_post} (ft)")
+        # Move drone to this region's fleet
+        r.fleet.add(closest_AMR)
         
     def allocate_Drones2Region(self, r):
         """
@@ -475,6 +432,60 @@ class TaskAllocator:
 
 # ============================================================================================================
 # Depricated
+
+    # def allocate_AMR2Region(self, r, pick_point="center"):
+    #     """
+    #     Assign AMR's to Regions by checking if paths to their destinations overlap
+    #     Switch any overlapping paths to get an approximated optimal allocation
+    #     """
+
+    #     # Logging variable keeps track of drone travel distance prior to optimization
+    #     dist_prior = sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])
+
+    #     for i in range(len(self.regions)):
+    #         k = 0            
+    #         while k < len(self.regions):
+    #             # Must be converted to list to index the first value
+    #             amr1 = list(self.regions[i].fleet.robots["AMR"].values())[0]
+    #             amr2 = list(self.regions[k].fleet.robots["AMR"].values())[0]
+
+    #             # AMR -> region centers: start and end points
+    #             path1 = [amr1.pos, self.regions[i].center]
+    #             path2 = [amr2.pos, self.regions[k].center]
+
+    #             # If region-to-agent paths intersect, swap assigned agents
+    #             if intersect(path1[0], path1[1], path2[0], path2[1]):
+    #                 self.regions[i].fleet.robots["AMR"] = {amr2.robot_id:amr2}
+    #                 self.regions[k].fleet.robots["AMR"] = {amr1.robot_id:amr1}
+                    
+    #                 # Restart nested loop for every intersection to check back over previous paths
+    #                 k = 0
+    #             else:
+    #                 k += 1
+
+    #     # Assign pick points for each region after all AMR's have been assigned
+    #     if pick_point == "center":
+    #         r.pick_point = r.center
+
+    #     elif pick_point == "closest2AMR":
+    #         # AMR for this region
+    #         amr = r.fleet.get_robots_as_list(robot_type="AMR")[0]
+
+    #         # Define pick point for this regiclosest_drone = self.fleet.closest_robots_at_end_path(r.center, robot_type="Drone")
+
+    #         # Move drone to this region's fleet
+    #         r.fleet.add(closest_drone)on as the floor under the pick point closest to the AMR's initial position
+    #         closest_task_to_amr = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, amr.lookup_last_assigned_pos()))
+    #         r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 5)
+        
+    #     elif pick_point == "closest2drop":
+    #         pass
+                
+
+    #     # Logging variable keeps track of drone travel distance post optimization
+    #     dist_post = sum([manhattan_dist(r.center, list(r.fleet.robots['AMR'].values())[0].pos) for r in self.regions])
+
+    #     print(f"AMR assignment distance optimized: {dist_prior} -> {dist_post} (ft)")
 
     # def create_Regions(self, hyperclustering=False):
     #     """
