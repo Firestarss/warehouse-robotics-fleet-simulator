@@ -154,9 +154,9 @@ class WarehouseMap:
         Returns:
             Point: cell where cell.x is row, cell.y is col, cell.z is layer
         """
-        cell_x = round((point.x - self.wh_zone.x_lims[0]) * self.resolution)
-        cell_y = round((point.y - self.wh_zone.y_lims[0]) * self.resolution)
-        cell_z = round((point.z - self.wh_zone.z_lims[0]) * self.resolution)
+        cell_x = int((point.x - self.wh_zone.x_lims[0]) * self.resolution)
+        cell_y = int((point.y - self.wh_zone.y_lims[0]) * self.resolution)
+        cell_z = int((point.z - self.wh_zone.z_lims[0]) * self.resolution)
         return Cell(cell_x, cell_y, cell_z)
 
     def cell_to_point_center(self, cell):

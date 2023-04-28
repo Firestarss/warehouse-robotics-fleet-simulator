@@ -4,6 +4,7 @@ from robot_fleet import *
 import numpy as np
 import heapq
 import itertools
+import math
 
 class Node:
     """
@@ -42,6 +43,11 @@ class Node:
 
     def update_f(self): self.f = self.g + self.h
 
+    def is_valid_end(self, end):
+        valid_pos = self.position[:-1] == end.position[:-1]
+        valid_time = self.position[-1] >= end.position[-1]
+        return valid_pos and valid_time
+
     def __eq__(self, other) -> bool:
         return self.position == other.position
     
@@ -66,6 +72,7 @@ class PathPlanner:
     def __init__(self, map, fleet):
         self.map = map
         self.fleet = fleet
+        self.occupied_nodes = set()
         
     def __repr__(self):
         pass
@@ -74,28 +81,29 @@ class PathPlanner:
         path = []
         cur_node = node
         while cur_node is not None:
-            path.append(cur_node.position)
+            path.append(cur_node.get_position())
+            self.occupied_nodes.add(cur_node.get_position())
             cur_node = cur_node.parent
-        
-        return [self.map.cell_to_point_center(Cell(x, y, z)) for x,y,z in path[::-1]]
 
-    def calc_a_star_path(self, start: Point, end: Point, collisions = True, debug_info = None):
+        return [self.map.cell_to_point_center(Cell(x, y, z)) for x,y,z,_ in path[::-1]]
+    
+    def calc_ca_star_path(self, start: Point, end: Point, start_time: int, end_time: int, robot_type: str):
         start_cell = self.map.point_to_cell(start)
         end_cell = self.map.point_to_cell(end)
 
-        start_t = tuple(start_cell)
-        end_t = tuple(end_cell)
+        start_tuple = tuple(list(start_cell) + [start_time])
+        end_tuple = tuple(list(end_cell) + [end_time])
         
-        start_node = Node(tuple(self.map.point_to_cell(start)))
-        end_node = Node(tuple(self.map.point_to_cell(end)))
+        start_node = Node(start_tuple)
+        end_node = Node(end_tuple)
 
         open_list = [start_node]
         closed_set = set()
 
         heapq.heapify(open_list)
 
-        adjacent_deltas = set(itertools.product((-1,0,1), (-1,0,1), (-1,0,1)))
-        adjacent_deltas.discard((0,0,0))
+        z_options = [-1,0,1] if robot_type.lower().startswith("d") else [0]
+        adjacent_deltas = set(itertools.product([-1,0,1], [-1,0,1], z_options, [1]))
 
         x_lim = self.map.wh_zone.x_lims[1] * self.map.resolution
         y_lim = self.map.wh_zone.y_lims[1] * self.map.resolution
@@ -108,7 +116,7 @@ class PathPlanner:
             closed_set.add(cur_node)
 
             # If the goal is found
-            if cur_node == end_node:
+            if cur_node.is_valid_end(end_node):
                 return self.backtrack_path(cur_node)
             
             # Generate children
@@ -123,11 +131,10 @@ class PathPlanner:
                 if True in lt_zero or True in gt_lim:
                     continue
 
-                # Check if cell is blocked (if collisions flag is True)
-                if collisions:
-                    cur_cell = Cell(neighbor[0], neighbor[1], neighbor[2])
-                    if self.map.cell_blocked(cur_cell):
-                        continue
+                # Check if position collides with shelves or planned paths
+                cur_cell = Cell(neighbor[0], neighbor[1], neighbor[2])
+                if self.map.cell_blocked(cur_cell) or neighbor in self.occupied_nodes:
+                    continue
 
                 # Create and add new node to children
                 new_node = Node(neighbor, cur_node)
@@ -141,57 +148,19 @@ class PathPlanner:
                 if child in open_list:
                     continue
 
-                c_x, c_y, c_z = child.get_position()
+                c_x, c_y, c_z, _ = child.get_position()
                 child_cell = Cell(c_x, c_y, c_z)
                 
-
-                child.set_g(cur_node.get_g() + 1)
-                child.set_h(diag_dist(child_cell, end_cell))
+                dist_with_time = math.dist(cur_node.get_position(), child.get_position())
+                child.set_g(cur_node.get_g() + dist_with_time)
+                child.set_h(math.dist(child.get_position()[:-1], end_tuple[:-1]))
 
                 heapq.heappush(open_list, child)
 
-        print(f"{terminal_colors['FAIL']}{f'No path found: {start} --> {end}'.ljust(55)}{f'|| {start_cell} --> {end_cell}'.ljust(35)}|| {debug_info}{terminal_colors['ENDC']}")
+        print(f"{terminal_colors['FAIL']}{f'No path found: {start} --> {end}'.ljust(55)}{f'|| {start_cell} --> {end_cell}'.ljust(35)}")
 
         return None
-    
-    def calc_a_star_path_without_collisions(self, start: Point, end: Point, debug_info = None):
-        return self.calc_a_star_path(start, end, False, debug_info = debug_info)
 
-
-    def calc_manhattan_path(self, start: Point, end: Point, debug_info = None):
-        s_x, s_y, s_z = self.map.point_to_cell(start)
-        e_x, e_y, e_z = self.map.point_to_cell(end)
-
-        path = []
-
-        for x in np.arange(
-                        start = s_x,
-                        stop = e_x,
-                        step = -1 if s_x > e_x else 1,
-                        dtype = int):
-            path.append(Cell(x, s_y, s_z))
-
-        s_x = e_x
-        
-        for y in np.arange(
-                        start = s_y,
-                        stop = e_y,
-                        step = -1 if s_y > e_y else 1,
-                        dtype = int):
-            path.append(Cell(s_x, y, s_z))
-
-        s_y = e_y
-
-        for z in np.arange(
-                        start = s_z,
-                        stop = e_z ,
-                        step = -1 if s_z > e_z else 1,
-                        dtype = int):
-            path.append(Cell(s_x, s_y, z))
-
-        path.append(self.map.point_to_cell(end))
-
-        return [self.map.cell_to_point_center(node) for node in path]
 
     def temp_plan_all_paths(self, alg = "a*"):
         failed_cells = []
