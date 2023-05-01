@@ -197,7 +197,8 @@ class PathPlanner:
         failed_cells = []
         algorithms = {
             "a*": self.calc_a_star_path,
-            "a*_no_col": self.calc_a_star_path_without_collisions
+            "a*_no_col": self.calc_a_star_path_without_collisions,
+            "manhattan": self.calc_manhattan_path
         }
         path_planning_alg = algorithms[alg]
 
