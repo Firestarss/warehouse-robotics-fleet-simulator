@@ -3,7 +3,7 @@ from warehouse_map import *
 from robot_fleet import *
 from path_planning import *
 from task_allocation import *
-from visualization2 import *
+from visualization import *
 
 from pytictoc import TicToc
 import numpy as np
