@@ -20,7 +20,7 @@ class Region:
         self.pick_point = None
 
         # List of AMR tasks held so that they can be merged at the end of task allocation
-        self.amr_tasks = None
+        self.amr_tasks = []
 
     def __repr__(self):
         return (f"Region(id={self.id}\n" + 
@@ -34,7 +34,7 @@ class Region:
         Return the drone task for assignment,
         save AMR tasks for easy combination in merge_amr_tasks()
         """
-        if "AMR" in self.fleet:
+        if "AMR" in self.fleet.robots.keys():
             # Drone task is to pick at the task pick point and drop at the region pick point   
             drone_task = Task(task.task_id, task.pick_point, self.pick_point)
             
@@ -53,7 +53,7 @@ class Region:
         add all drop points to a single task,
         and assign to AMR
         """
-        if "AMR" in self.fleet:
+        if "AMR" in self.fleet.robots.keys():
             # Order drop points to be visited ccw
             sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_point().y - self.center.y, task.drop_point().x - self.center.x))
 
@@ -68,7 +68,7 @@ class Region:
 # ============================================================================================================
 
 class TaskAllocator:
-    def __init__(self, task_list, fleet, resolution, allocation_type="regional_base"):
+    def __init__(self, task_list, fleet, resolution, region_type="homogeneous", allocation_type="no_handoff"):
         self.task_list = task_list
         
         self.fleet = fleet
@@ -80,62 +80,24 @@ class TaskAllocator:
         if self.check_for_input_error():
             return
         
-        type_options = {
-            "homogeneous":(
-                self.homogeneous_region,
-                self.no_handoff
-                ),
-            "AMR_regions_center_handoff":(
-                self.AMR_regions,
-                self.center_handoff
-                ),
-            "AMR_regions_center_handoff_hypercluster":(
-                self.AMR_regions_hypercluster,
-                self.center_handoff
-                ),
-            "sized_regions_center_handoff":(
-                self.sized_regions,
-                self.center_handoff
-                ),
-            "sized_regions_center_handoff_hypercluster":(
-                self.sized_regions_hypercluster,
-                self.center_handoff
-                ),
-            "AMR_regions_closest2AMR_handoff":(
-                self.AMR_regions,
-                self.closest2AMR_handoff
-                ),
-            "AMR_regions_closest2AMR_handoff_hypercluster":(
-                self.AMR_regions_hypercluster,
-                self.closest2AMR_handoff
-                ),
-            "sized_regions_closest2AMR_handoff":(
-                self.sized_regions,
-                self.closest2AMR_handoff
-                ),
-            "sized_regions_closest2AMR_handoff_hypercluster":(
-                self.sized_regions_hypercluster,
-                self.closest2AMR_handoff
-                ),
-            "AMR_regions_closest2drop_handoff":(
-                self.AMR_regions,
-                self.closest2drop_handoff
-                ),
-            "AMR_regions_closest2drop_handoff_hypercluster":(
-                self.AMR_regions_hypercluster,
-                self.closest2drop_handoff
-                ),
-            "sized_regions_closest2drop_handoff":(
-                self.sized_regions,
-                self.closest2drop_handoff
-                ),
-            "sized_regions_closest2drop_handoff_hypercluster":(
-                self.sized_regions_hypercluster,
-                self.closest2drop_handoff
-                )
+        region_options = {
+            "homogeneous" :                 self.homogeneous_region,
+            "AMR_regions" :                 self.AMR_regions,
+            "AMR_regions_hypercluster" :    self.AMR_regions_hypercluster,
+            "sized_regions" :               self.sized_regions,
+            "sized_regions_hypercluster" :  self.sized_regions_hypercluster
         }
 
-        (self.cluster_regions, self.allocate_tasks) = type_options[allocation_type]
+        allocation_options = {
+            "no_handoff" :                  self.no_handoff,
+            "center_handoff" :              self.center_handoff,
+            "closest2AMR_handoff" :         self.closest2AMR_handoff,
+            "closest2drop_handoff" :        self.closest2drop_handoff
+        }
+
+        self.cluster_regions = region_options[region_type]
+
+        self.allocate_tasks = allocation_options[allocation_type]
 
     def __repr__(self):
         return (f"TaskAllocator(task_list={self.task_list}\n" + 
@@ -178,6 +140,31 @@ class TaskAllocator:
 # ============================================================================================================
 
 # ============================================================================================================
+# HIGH-LEVEL Task Allocation functions
+
+    def no_handoff(self, r):
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+    
+    def center_handoff(self, r):
+        self.allocate_AMR2Region(r, pick_point="center")
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+
+    def closest2AMR_handoff(self, r):
+        self.allocate_AMR2Region(r, pick_point="closest2AMR")
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+
+    def closest2drop_handoff(self, r):
+        self.allocate_AMR2Region(r, pick_point="closest2drop")
+        self.allocate_Drones2Region(r)
+        self.assign_tasks(r)
+
+# HIGH-LEVEL Task Allocation functions
+# ============================================================================================================
+
+# ============================================================================================================
 # Region Clustering functions
 
     def create_homogeneous_region(self):
@@ -193,7 +180,7 @@ class TaskAllocator:
         center = Point(u[0], u[1], 1.5 * (1/self.resolution))
 
         # Ignore all AMRs for this region's fleet
-        fleet = Fleet({"Drone":{self.fleet["Drone"]}})
+        fleet = Fleet({"Drone":self.fleet.robots["Drone"]})
 
         # Create new region
         r = Region(
@@ -225,7 +212,7 @@ class TaskAllocator:
                     n_init='auto'
                 ).fit(flattened_pick_points)
 
-        for i in n_ground_agents:
+        for i in range(n_ground_agents):
             # Cast the cluster centers as 3D Points with height 5
             center = Point(int(KM_tasks.cluster_centers_[i][0]), int(KM_tasks.cluster_centers_[i][1]), 5)
 
@@ -257,13 +244,15 @@ class TaskAllocator:
         carrying_capacity = 10
 
         n_regions = math.ceil(len(flattened_pick_points) / carrying_capacity)
+
+        print("n_regions: ", n_regions)
         
         KM_tasks = KMeansConstrained(
                     n_clusters=n_regions,
                     size_min=2,
                     size_max = 10,
                     random_state=0
-                )
+                ).fit(flattened_pick_points)
 
         for i in range(n_regions):
             # Cast the cluster centers as 3D Points with height 5
@@ -287,30 +276,6 @@ class TaskAllocator:
 # ============================================================================================================
 
 # ============================================================================================================
-# HIGH-LEVEL Task Allocation functions
-    def no_handoff(self, r):
-        self.allocate_Drones2Region(r)
-        self.assign_tasks(r)
-    
-    def center_handoff(self, r):
-        self.allocate_AMR2Region(r, pick_point="center")
-        self.allocate_Drones2Region(r)
-        self.assign_tasks(r)
-
-    def closest2AMR_handoff(self, r):
-        self.allocate_AMR2Region(r, pick_point="closest2AMR")
-        self.allocate_Drones2Region(r)
-        self.assign_tasks(r)
-
-    def closest2drop_handoff(self, r):
-        self.allocate_AMR2Region(r, pick_point="closest2drop")
-        self.allocate_Drones2Region(r)
-        self.assign_tasks(r)
-
-# HIGH-LEVEL Task Allocation functions
-# ============================================================================================================
-
-# ============================================================================================================
 # Task Allocation functions
 
     def allocate_AMR2Region(self, r, pick_point="center"):
@@ -319,7 +284,7 @@ class TaskAllocator:
         Switch any overlapping paths to get an approximated optimal allocation
         """
         # AMR allocated to this region
-        closest_AMR = self.fleet.closest_robots_at_end_path(r.center, robot_type="AMR")
+        closest_AMR = self.fleet.closest_robots_at_end_path(r.center, robot_type="AMR")[0]
 
         # Assign pick points for each region after AMR has been assigned
         if pick_point == "center":
@@ -346,21 +311,15 @@ class TaskAllocator:
         # Drones Per Task of each region if solution is optimal
         DPT_avg = len(self.fleet.robots["Drone"]) / len(self.task_list.tasks)
 
-        # float value for how many extra drones this region has based on the average estimate
-        n_drone_target = DPT_avg * len(r.task_list.tasks)
+        # value for how many extra drones this region has based on the average estimate
+        n_drone_target = round(DPT_avg * len(r.task_list.tasks))
 
-        # If more than 1/2 of a drone is unused, donate closest drone. CANNOT DONATE LAST DRONE
-        #TODO: check this
-        while n_drone_target - len(r.fleet.robots["Drone"]) > 0.5:
-            # closest drone in the fleet to centroid of this region
-            closest_drone = self.fleet.closest_robots_at_end_path(r.center, robot_type="Drone")
+        # closest drones in the fleet to centroid of this region
+        closest_drones = self.fleet.closest_robots_at_end_path(r.center, robot_type="Drone")
 
-            # Move drone to this region's fleet
-            r.fleet.add(closest_drone)
-
-        # Drones Per Task standard deviation used to approximate solution achievement
-        # DPT_std = sum([(len(t.fleet.robots['Drone']) / len(t.task_list.tasks) - DPT_avg)**2 for t in self.regions])/len(self.regions)
-
+        # Move drone to this region's fleet
+        [r.fleet.add(drone) for drone in closest_drones[0:n_drone_target]]
+        
     def assign_tasks(self, r):
         """
         2. Assign each drone to 1 random task while unclaimed tasks remain

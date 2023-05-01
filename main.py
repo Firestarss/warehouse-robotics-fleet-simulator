@@ -48,14 +48,6 @@ wh1_info = {
     }
 }
 
-# drones = []
-# amrs = []
-# times = []
-
-# for amr_count in range(1, 50):
-#     for drone_count in range(1, 50):
-#         if drone_count >= amr_count:
-#             t.tic()
 wh1_map = WarehouseMap(wh1_info, resolution=0.1, units="ft")
 wh1_pick_points, wh1_drop_points = wh1_map.generate_points()
 # wh1_map.show_occ_matrix(0)
@@ -71,47 +63,17 @@ print(fleet)
 
 
 task_allocator = TaskAllocator(rand_task_list, fleet, wh1_map.resolution,
-                               allocation_type="homogeneous")
+                               region_type="sized_regions_hypercluster",
+                               allocation_type="closest2drop_handoff")
 
 task_allocator.cluster_regions()
 
 path_planner = PathPlanner(wh1_map, fleet)
 
 for r in task_allocator.regions:
-    
     task_allocator.allocate_tasks(r)
 
     # path_planner.temp_plan_all_paths()
-
-            
-# drones.append(drone_count)
-# amrs.append(amr_count)
-# times.append(t.tocvalue())
-
-# x = np.asarray(drones)
-# y = np.asarray(amrs)
-# z = np.asarray(times)
-
-# print(z)
-
-# fig = plt.figure()
-
-# ax = fig.add_subplot(111, projection='3d')
-
-# ax.scatter(x,y,z)
-
-# ax.set_xlabel('# Drones')
-# ax.set_ylabel('# AMRS')
-# ax.set_zlabel('t')
-
-# ax.set_zlim(0, 0.04)
-
-# plt.show()
-
-# print(fleet.get_robots_as_list("Drone"))
-
-# path_planner = PathPlanner(wh1_map, fleet)
-# path_planner.temp_plan_all_paths()
 
 task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
 task_visualizer.show()
