@@ -3,7 +3,7 @@ from warehouse_map import *
 from robot_fleet import *
 from path_planning import *
 from task_allocation import *
-from visualization import *
+from visualization2 import *
 
 from pytictoc import TicToc
 import numpy as np
@@ -73,11 +73,27 @@ path_planner = PathPlanner(wh1_map, fleet)
 for r in task_allocator.regions:
     task_allocator.allocate_tasks(r)
 
-    # path_planner.temp_plan_all_paths()
+# ax.scatter(x,y,z)
 
-task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
-task_visualizer.show()
+# ax.set_xlabel('# Drones')
+# ax.set_ylabel('# AMRS')
+# ax.set_zlabel('t')
+
+# ax.set_zlim(0, 0.04)
+
+# plt.show()
+
+# print(fleet.get_robots_as_list("Drone"))
+
+path_planner = PathPlanner(wh1_map, fleet)
+path_planner.temp_plan_all_paths()
+
+# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
+# task_visualizer.show()
 
 
-# path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off", show_t=True)
-# path_visualizer.show()
+path_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
+path_visualizer.show()
+
+animation_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="color_tasks_traces_off", show_t=True)
+animation_visualizer.animation()

@@ -40,18 +40,18 @@ class Visualizer:
 
     def color_tasks_traces_off(self):
         self.plot_blocked_areas()
-        self.plot_pick_drop_points()
+        self.plot_tasks()
 
     def black_tasks_traces_on(self):
         self.plot_blocked_areas()
-        self.plot_pick_drop_points(color="rgba(10,10,10,0.4)")
+        self.plot_tasks(color="rgba(10,10,10,0.4)")
         self.trace_robot_paths(show_t=self.show_t)
         
     def fleet_tasks(self):
         self.plot_blocked_areas()
         robots = self.fleet.get_robots_as_list()
         for robot in robots:
-            self.plot_pick_drop_points(tasks=robot.task_list.tasks)
+            self.plot_tasks(tasks=robot.task_list.tasks)
 
     def set_fig_layout(self):
         self.fig.update_layout(
@@ -66,47 +66,23 @@ class Visualizer:
     def color(self, idx):
         return self.colors[idx % len(self.colors)]
     
-    def plot_zone(self, zone, color="red", name="", hoverinfo=None):
+    def make_zone_mesh(self, zone, color="red", name="", hoverinfo=None):
+        x, y, z, i, j, k = zone.mesh_params()
         if hoverinfo == None:
-            x, y, z, i, j, k = zone.mesh_params()
-            self.fig.add_mesh3d(
-                # 8 vertices of a cube
-                x=x,
-                y=y,
-                z=z,
-                i = i,
-                j = j,
-                k = k,
-                opacity=0.4,
-                color=color,
-                flatshading = True,
-                name=name
-            )
+            return go.Mesh3d(x=x, y=y, z=z, i = i, j = j, k = k, opacity=0.4, color=color, flatshading = True, name=name)
         else:
-            x, y, z, i, j, k = zone.mesh_params()
-            self.fig.add_mesh3d(
-                # 8 vertices of a cube
-                x=x,
-                y=y,
-                z=z,
-                i = i,
-                j = j,
-                k = k,
-                opacity=0.4,
-                color=color,
-                flatshading = True,
-                name=name,
-                hoverinfo=hoverinfo
-            )
+            return go.Mesh3d(x=x, y=y, z=z, i = i, j = j, k = k, opacity=0.4, color=color, flatshading = True, name=name, hoverinfo=hoverinfo)
     
     def plot_blocked_areas(self, hoverinfo="skip"):
         lightness = 150
         color = f'rgb({lightness},{lightness},{lightness})'
         for blocked_area in self.wh_map.blocked_areas:
-            self.plot_zone(blocked_area, hoverinfo="skip", color=color)
+            self.fig.add_trace(self.make_zone_mesh(blocked_area, hoverinfo="skip", color=color))
+            
+    
 
-    def plot_pick_drop_points(self, tasks=None, color=None):
-        """creates 3D plot showing agent start locations and task locations"""
+    def plot_tasks(self, tasks=None, color=None):
+        """Plots task pick and drop locations"""
         if tasks == None:
             tasks = self.task_list.tasks
         if color == None:
@@ -157,6 +133,8 @@ class Visualizer:
                     marker=dict(color=color, size=marker_size, symbol='square'),
                     name=f"Pick {tasks[i].task_id}: {pick_str}",
                     text=[tasks[i].task_id])
+                
+    
 
     def trace_path(self, point_path, path_name="", color='rgb(31,119,180)', t_start=None, show_t=False):
         print(f"Tracing path {path_name}")
@@ -210,8 +188,52 @@ class Visualizer:
                 self.trace_path(bot.path[i],f"{bot.robot_id}-{i}", 
                                 self.color(bot_num), t_start, show_t=show_t)
             bot_num += 1
-            
+    
+    def make_blocked_areas_meshes(self, hoverinfo="skip"):
+        meshes = []
+        lightness = 150
+        color = f'rgb({lightness},{lightness},{lightness})'
+        for blocked_area in self.wh_map.blocked_areas:
+            meshes.append(self.make_zone_mesh(blocked_area, hoverinfo="skip", color=color))
+        return meshes
+    
+    def make_simple_task_scatter(self, tasks=None, color=None):
+        task_traces = []
+        if tasks == None:
+            tasks = self.task_list.tasks
+        if color == None:
+            run_color_rotation = True
+        for i in range(len(tasks)):
+            if run_color_rotation:
+                task_num = int(tasks[i].task_id[1:])
+                color = color=self.color(task_num)
+            marker_size = np.linspace(10,5, len(tasks))
+            task_traces.append(Scatter3d(
+                x=[tasks[i].pick_point.x,tasks[i].drop_point().x], 
+                y=[tasks[i].pick_point.y,tasks[i].drop_point().y], 
+                z=[tasks[i].pick_point.z,tasks[i].drop_point().z], 
+                mode='lines+markers+text',
+                marker=dict(color=color, size=marker_size[i],
+                            symbol='square'),
+                name=f"Task {tasks[i].task_id}",
+                text=[tasks[i].task_id]))
+        return task_traces        
+    
+    def make_robot_scatter_frame(self, frame_num):
+        robot_list = self.fleet.get_robots_as_list()
+        self.fig.Scatter3d(
+                x=[bot.lookup_pos(frame_num).x for bot in robot_list],
+                y=[bot.lookup_pos(frame_num).y for bot in robot_list],
+                z=[bot.lookup_pos(frame_num).z for bot in robot_list],
+                mode='markers+text',
+                marker=dict(size=5),
+                name=f"Robots at t={frame_num}",
+                showlegend=False,
+                text=[bot.robot_id for bot in robot_list])
+        
     def animation(self):
+        t_max = fleet.longest_path_len()
+        
         # make figure
         fig_dict = {
             "data": [],
@@ -271,49 +293,14 @@ class Visualizer:
         }
 
         # make data
-        year = 1952
-        for continent in continents:
-            dataset_by_year = dataset[dataset["year"] == year]
-            dataset_by_year_and_cont = dataset_by_year[
-                dataset_by_year["continent"] == continent]
-
-            data_go = go.Scatter3d(dict({
-                "x": list(dataset_by_year_and_cont["lifeExp"]),
-                "y": list(dataset_by_year_and_cont["gdpPercap"]),
-                "z": list(range(len(dataset_by_year_and_cont["lifeExp"]))),
-                "mode": "markers",
-                "text": list(dataset_by_year_and_cont["country"]),
-                "marker": {
-                    "sizemode": "area",
-                    "sizeref": 200000,
-                    "size": list(dataset_by_year_and_cont["pop"])
-                },
-                "name": continent
-            }))
-            fig_dict["data"].append(data_go)
+        data_go = self.make_robot_scatter_frame(0)
+        fig_dict["data"].append(data_go)
 
         # make frames
-        for year in years:
-            frame = {"data": [], "name": str(year)}
-            for continent in continents:
-                dataset_by_year = dataset[dataset["year"] == int(year)]
-                dataset_by_year_and_cont = dataset_by_year[
-                    dataset_by_year["continent"] == continent]
-
-                data_go = go.Scatter3d(dict({
-                    "x": list(dataset_by_year_and_cont["lifeExp"]),
-                    "y": list(dataset_by_year_and_cont["gdpPercap"]),
-                    "z": list(range(len(dataset_by_year_and_cont["lifeExp"]))),
-                    "mode": "markers",
-                    "text": list(dataset_by_year_and_cont["country"]),
-                    "marker": {
-                        "sizemode": "area",
-                        "sizeref": 200000,
-                        "size": list(dataset_by_year_and_cont["pop"])
-                    },
-                    "name": continent
-                }))
-                frame["data"].append(data_go)
+        for t in range(t_max):
+            frame = {"data": [], "name": str(t)}
+            data_go = self.make_robot_scatter_frame(t)
+            frame["data"].append(data_go)
 
             fig_dict["frames"].append(frame)
             slider_step = {"args": [
