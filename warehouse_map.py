@@ -21,30 +21,32 @@ class WarehouseMap:
                 f"    units={self.units})")
     
     def initialize_info(self, wh_info):
-        self.bin_x = wh_info["bin"]["x"]
-        self.bin_y = wh_info["bin"]["y"]
-        self.bin_z = wh_info["bin"]["z"]
-        self.bin_d = wh_info["bin"]["pick_distance"]
+        self.bin_d = wh_info["pick_dist"]
 
-        self.shelf_x = wh_info["shelf"]["x"] * self.bin_x
-        self.shelf_y = wh_info["shelf"]["y"] * self.bin_y
-        self.shelf_z = wh_info["shelf"]["z"] * self.bin_z
+        self.bin_x = wh_info["bin_x"]
+        self.bin_y = wh_info["bin_y"]
+        self.bin_z = wh_info["bin_z"]
 
-        self.aisle_x = wh_info["warehouse"]["aisle_x"]
-        self.aisle_y = wh_info["warehouse"]["aisle_y"]
+        self.shelf_x = wh_info["shelf_x"] * self.bin_x
+        self.shelf_y = wh_info["shelf_y"] * self.bin_y
+        self.shelf_z = wh_info["shelf_z"] * self.bin_z
 
-        self.count_x = wh_info["warehouse"]["x"]
-        self.count_y = wh_info["warehouse"]["y"]
+        self.aisle_x = wh_info["aisle_x"]
+        self.aisle_y = wh_info["aisle_y"]
 
-        self.bdr_top = wh_info["border_top"]["padding"]
-        self.bdr_down = wh_info["border_down"]["padding"]
-        self.bdr_left = wh_info["border_left"]["padding"]
-        self.bdr_right = wh_info["border_right"]["padding"]
+        self.count_x = wh_info["warehouse_x"]
+        self.count_y = wh_info["warehouse_y"]
+        self.warehouse_z = wh_info["warehouse_y"]
 
-        self.drop_points_top = wh_info["border_top"]["drop_points"]
-        self.drop_points_down = wh_info["border_down"]["drop_points"]
-        self.drop_points_left = wh_info["border_left"]["drop_points"]
-        self.drop_points_right = wh_info["border_right"]["drop_points"]
+        self.bdr_top = wh_info["border"][0]
+        self.bdr_down = wh_info["border"][1]
+        self.bdr_left = wh_info["border"][2]
+        self.bdr_right = wh_info["border"][3]
+
+        self.drop_points_top = wh_info["drop_points"][0]
+        self.drop_points_down = wh_info["drop_points"][1]
+        self.drop_points_left = wh_info["drop_points"][2]
+        self.drop_points_right = wh_info["drop_points"][3]
 
     def generate_zones(self):
         # Borders of shelving units
@@ -71,7 +73,7 @@ class WarehouseMap:
         wh_zone = Zone(
                 [0, xlim + self.bdr_left + self.bdr_right],
                 [0, ylim + self.bdr_top  + self.bdr_down],
-                [0, zlim]
+                [0, self.warehouse_z]
             )        
 
         # Create shelf_zone: Range of shelving area boundary used to assign pick points
@@ -81,7 +83,7 @@ class WarehouseMap:
                 [0,             zlim]
             )
 
-        print(f"WAREHOUSE ZONE DIMENSIONS: {wh_zone}")
+        # print(f"WAREHOUSE ZONE DIMENSIONS: {wh_zone}")
 
         return shelves, shelf_zone, wh_zone,
     
@@ -119,7 +121,7 @@ class WarehouseMap:
                 for i in pick_xs:
                     self.pick_points.append(Point(i,j,k))
 
-        print(f"TOTAL PICK_POINTS = {len(self.pick_points)}")
+        # print(f"TOTAL PICK_POINTS = {len(self.pick_points)}")
 
         # Populate Drop locations between 1 or all warehouse sides
         if self.drop_points_top:

@@ -244,8 +244,6 @@ class TaskAllocator:
         carrying_capacity = 10
 
         n_regions = math.ceil(len(flattened_pick_points) / carrying_capacity)
-
-        print("n_regions: ", n_regions)
         
         KM_tasks = KMeansConstrained(
                     n_clusters=n_regions,
@@ -384,7 +382,7 @@ class TaskAllocator:
         # If AMR in this region, merge tasks and assign
         r.merge_amr_tasks()
 
-        print(f"{r.id} task assignment distance optimized: {dist_prior} -> {dist_post} (ft)")        
+        # print(f"{r.id} task assignment distance optimized: {dist_prior} -> {dist_post} (ft)")        
 
 # Task Allocation functions
 # ============================================================================================================

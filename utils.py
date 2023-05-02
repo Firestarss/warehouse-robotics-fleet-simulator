@@ -1,6 +1,7 @@
 import random
 import math
 import numpy as np
+import copy
 
 class Location:
     def __init__(self, x, y, z):
