@@ -42,6 +42,8 @@ class Evaluator:
     def __init__(self):
         self.simulation_parameters = {}
 
+        self.simulation_data = {}
+
         self.set_static("pick_dist",  5)
 
         self.set_static("bin_y",  10)
@@ -65,6 +67,12 @@ class Evaluator:
 
     def __repr__(self):
         pass
+
+    def log(self, name, data):
+        if name in self.simulation_data:
+            self.simulation_data[name].append(data)
+        else:
+            self.simulation_data[name] = [data]
     
     def set_static(self, name, value):
         self.simulation_parameters[name] = SimParam(name, value=value)
@@ -101,11 +109,7 @@ class Evaluator:
 
         return self.recursive_split_wh_info(expanded_sim_param_config_list)
         
-
-    def generate_fleet_composition(self):
-        # drone_test_numbers = self.simulation_parameters["n_drone"].get_as_list()
-        # amr_test_numbers = self.simulation_parameters["n_amr"].get_as_list()
-
+    def generate_fleet_comp(self):
         test_params = []
         for n_drones in self.simulation_parameters["n_drone"].get_as_list():
             for n_amrs in self.simulation_parameters["n_amr"].get_as_list():
