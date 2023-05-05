@@ -52,18 +52,22 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
         fleet.populate_by_composition(fleet_comp, start_locations)
 
         task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
-                                    region_type="sized_regions",
-                                    handoff_type="closest2AMR_handoff")
+                                    region_type="homogeneous",
+                                    handoff_type="no_handoff")
+        
+        # task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
+        #                             region_type="sized_regions",
+        #                             handoff_type="closest2drop_handoff")
 
         task_allocator.cluster_regions()
 
         path_planner = PathPlanner(wh_map, fleet)
 
         for r in task_allocator.regions:
+            print(f"Allocating task for region {r}...")
             task_allocator.allocate_tasks(r)
-
-
-            # path_planner.plan_next_region()
+            print(f"Planning paths for region {r}...")
+            path_planner.plan_next_region()
 
         # Save parameters relevant to visualization info so any simulation can be chosen for viewing
         visualizer_info.append([wh_map, task_list, fleet])
