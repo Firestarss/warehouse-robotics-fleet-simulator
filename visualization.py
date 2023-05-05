@@ -147,12 +147,13 @@ class Visualizer:
         pass
     
     def make_layout_dict(self):
+        tic_div = 20
         fig_dict = {}
         fig_dict["layout"] = {}
         fig_dict["layout"]["scene"] = dict(
-                xaxis = dict(nticks=self.wh_map.wh_zone.x_range()//10, range=[self.wh_map.wh_zone.x_lims[1], self.wh_map.wh_zone.x_lims[0]]),
-                yaxis = dict(nticks=self.wh_map.wh_zone.y_range()//10, range=self.wh_map.wh_zone.y_lims,),
-                zaxis = dict(nticks=self.wh_map.wh_zone.z_range()//10, range=self.wh_map.wh_zone.z_lims,),
+                xaxis = dict(nticks=self.wh_map.wh_zone.x_range()//tic_div, range=[self.wh_map.wh_zone.x_lims[1], self.wh_map.wh_zone.x_lims[0]]),
+                yaxis = dict(nticks=self.wh_map.wh_zone.y_range()//tic_div, range=self.wh_map.wh_zone.y_lims,),
+                zaxis = dict(nticks=self.wh_map.wh_zone.z_range()//tic_div, range=self.wh_map.wh_zone.z_lims,),
                 aspectmode="manual", 
                 aspectratio=dict(x=1, y=self.wh_map.wh_zone.y_range()/self.wh_map.wh_zone.x_range(), z=self.wh_map.wh_zone.z_range()/self.wh_map.wh_zone.x_range()))
         fig_dict["layout"]["width"] = 1500
