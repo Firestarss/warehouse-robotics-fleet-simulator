@@ -241,7 +241,7 @@ class PathPlanner:
                 drop_time = current_amr.path_time()
             else:
                 drop_time = drone.path_time()
-                
+
             # Plan Drone path to drop/handoff location
             drone_to_drop_path = self.calc_ca_star_path(
                 drone.get_last_path_pos(),
@@ -262,7 +262,7 @@ class PathPlanner:
                 current_amr.get_last_path_pos(),
                 current_amr.path_time(),
                 leave_time,
-                current_amr.robot_id)
+                "W")
             
             current_amr.add_path_segment(amr_wait_path)
         
