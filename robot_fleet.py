@@ -29,8 +29,19 @@ class Robot:
 
     def path_len(self, r_end=None):
         if r_end == None:
-            return len(list(chain(*self.path)))
+            if self.path:
+                return len(list(chain(*self.path)))
+            else:
+                return 0
         else: return len(list(chain(*self.path[:r_end])))
+
+    def path_time(self):
+        return max(self.path_len() - 1,0)
+    
+    def get_last_path_pos(self):
+        if self.path_len() > 0:
+            return self.lookup_pos(self.path_len())
+        return self.pos
 
     def lookup_pos(self, time_step_num):
         """
@@ -205,13 +216,13 @@ class Fleet:
         #                 if bot_dist[1]==min_dist]
         return closest_bots
     
-    def get_robots_with_tasks(self):
+    def get_robots_with_unplanned_tasks(self):
         for robot_type, robots in self.robots.items():
             for robot_id, robot in robots.items():
                 if robot.get_next_task() is not None or robot.get_current_task() is not None:
                     yield robot
 
     def is_fleet_done(self):
-        for _ in self.get_robots_with_tasks():
+        for _ in self.get_robots_with_unplanned_tasks():
             return False
         return True

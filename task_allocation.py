@@ -286,17 +286,17 @@ class TaskAllocator:
 
         # Assign pick points for each region after AMR has been assigned
         if pick_point == "center":
-            r.pick_point = Point(r.center.x, r.center.y, 1.5 * 1/self.resolution)
+            r.pick_point = Point(r.center.x, r.center.y, 0.5 * 1/self.resolution)
 
         elif pick_point == "closest2AMR":
             closest_task_to_amr = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, closest_AMR.lookup_last_assigned_pos()))
             
-            r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 1.5 * 1/self.resolution)
+            r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 0.5 * 1/self.resolution)
         
         elif pick_point == "closest2drop":
             closest_task_to_drop = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, x.drop_point()))
 
-            r.pick_point = Point(closest_task_to_drop.pick_point.x, closest_task_to_drop.pick_point.y, 1.5 * 1/self.resolution)
+            r.pick_point = Point(closest_task_to_drop.pick_point.x, closest_task_to_drop.pick_point.y, 0.5 * 1/self.resolution)
 
         # Move drone to this region's fleet
         r.fleet.add(closest_AMR)

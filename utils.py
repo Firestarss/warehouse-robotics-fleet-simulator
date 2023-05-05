@@ -98,7 +98,7 @@ class CellZone(Zone):
 
 class Task: 
     def __init__(self, task_id, pick_point, drop_points, 
-                 robot=None, picked=False, done=False):
+                 robot=None, picked=0, done=0):
         self.task_id = task_id
         self.pick_point = pick_point
         self.drop_points = [drop_points] if type(drop_points) is not list else drop_points
@@ -115,7 +115,7 @@ class Task:
             if self.assigned_robot == None:
                 robot = "None"
             else: robot = self.assigned_robot.robot_id
-            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_points}, robot={robot}, started={self.started}, picked={self.picked}, done={self.done})"
+            return f"Task('{self.task_id}', {self.pick_point}, {self.drop_points}, robot={robot}, picked={self.picked}, done={self.done})"
     
     def drop_point(self):
         return self.drop_points[0]
@@ -151,13 +151,13 @@ class TaskList:
 
     def get_current_task(self):
         for task in self.tasks:
-            if task.started and not task.done:
+            if task.picked and not task.done:
                 return task
         return None
             
     def get_next_task(self):
         for task in self.tasks:
-            if not task.started:
+            if not task.picked:
                 return task
         return None
     

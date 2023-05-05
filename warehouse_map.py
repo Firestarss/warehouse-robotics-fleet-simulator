@@ -73,7 +73,7 @@ class WarehouseMap:
         wh_zone = Zone(
                 [0, xlim + self.bdr_left + self.bdr_right],
                 [0, ylim + self.bdr_top  + self.bdr_down],
-                [0, self.warehouse_z]
+                [0, zlim]
             )        
 
         # Create shelf_zone: Range of shelving area boundary used to assign pick points
