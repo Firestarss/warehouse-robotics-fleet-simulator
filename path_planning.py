@@ -265,7 +265,7 @@ class PathPlanner:
             # Plan Drone path to drop/handoff location
             drone_to_drop_path = self.calc_ca_star_path(
                 drone.get_last_path_pos(),
-                drone.get_current_task().drop_point(),
+                drone.get_current_task().drop_point,
                 drone.path_time(),
                 current_amr.path_time(),
                 drone.robot_id)

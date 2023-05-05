@@ -16,14 +16,14 @@ evaluator = Evaluator()
 # evaluator.set_static("warehouse_x",  4)
 # evaluator.set_static("warehouse_y",  8)
 
-evaluator.set_variable("warehouse_x",  min=2, max=10, step=2)
+# evaluator.set_variable("warehouse_x",  min=2, max=10, step=2)
 # evaluator.set_variable("warehouse_y",  min=2, max=10, step=2)
 # evaluator.set_variable("warehouse_z",  min=50, max=100, step=10)
 
-# evaluator.set_static("n_drone", 20)
-# evaluator.set_static("n_amr", 5)
-evaluator.set_variable("n_drone",  min=10, max=100, step=10)
-evaluator.set_variable("n_amr", min=1,  max=15,  step=5)
+evaluator.set_static("n_drone", 20)
+evaluator.set_static("n_amr", 5)
+# evaluator.set_variable("n_drone",  min=10, max=100, step=10)
+# evaluator.set_variable("n_amr", min=1,  max=15,  step=5)
 
 visualizer_info = []
 master_dists = []
@@ -44,7 +44,8 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
         print(f"    Fleet Composition: Drones = {fleet_comp[0][1]}, AMRs = {fleet_comp[1][1]}")
         
         fleet = Fleet()
-        fleet.populate_by_composition(fleet_comp, wh_pick_points)
+        start_locations = [Point(p.x,p.y,5) for p in wh_pick_points]
+        fleet.populate_by_composition(fleet_comp, start_locations)
 
         task_allocator = TaskAllocator(rand_task_list, fleet, wh_map.resolution,
                                     region_type="sized_regions_hypercluster",
@@ -58,7 +59,7 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
             task_allocator.allocate_tasks(r)
 
 
-            # path_planner.temp_plan_all_paths()
+            path_planner.plan_next_region()
 
         # Save parameters relevant to visualization info so any simulation can be chosen for viewing
         visualizer_info.append([wh_map, rand_task_list, fleet])
@@ -67,19 +68,19 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
         dists.append([fleet_comp[0][1], fleet_comp[1][1], dist])
     master_dists.append(dists)
 
-print(np.array(master_dists))
+# print(np.array(master_dists))
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
 
-for dist_list in master_dists:
-    x = [point[0] for point in dist_list]
-    y = [point[1] for point in dist_list]
-    z = [point[2] for point in dist_list]
+# for dist_list in master_dists:
+#     x = [point[0] for point in dist_list]
+#     y = [point[1] for point in dist_list]
+#     z = [point[2] for point in dist_list]
 
-    ax.scatter(x, y, z, alpha=1)
+#     ax.scatter(x, y, z, alpha=1)
 
-plt.show()
+# plt.show()
 
 wh_map, rand_task_list, fleet = visualizer_info[0]
 
@@ -88,5 +89,5 @@ wh_map, rand_task_list, fleet = visualizer_info[0]
 
 # print(fleet.get_robots_as_list("Drone"))
 
-visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
+visualizer = Visualizer(wh_map, rand_task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
 visualizer.show()

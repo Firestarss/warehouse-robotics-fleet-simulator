@@ -48,6 +48,8 @@ class Robot:
         Get the position of this robot at a given time step (int).
         """
         unnested_path = list(chain(*self.path))
+        if len(unnested_path) == 0:
+            return self.pos
         if time_step_num >= len(unnested_path):
             return unnested_path[-1]
         return unnested_path[time_step_num]

@@ -101,7 +101,7 @@ class Visualizer:
         
         if self.vis_type == "animated_with_pick_updates":
             self.task_plot_mode = "no_lines"
-            print("self.task_plot_mode for vis_type 'animated_with_pick_updates' is forced to be 'no_lines'.")
+            print("self.task_plot_mode for vis_type" + "'animated_with_pick_updates' is forced to be 'no_lines'.")
 
         self.fig = go.Figure()
         self.set_fig_layout()

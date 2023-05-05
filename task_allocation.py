@@ -40,7 +40,7 @@ class Region:
             drone_task = Task(task.task_id, task.pick_point, self.pick_point)
             
             # Save second half of task for merging later
-            self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_point()))
+            self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_point))
 
             return drone_task
         
@@ -57,10 +57,10 @@ class Region:
 
         if "AMR" in self.fleet.robots.keys():
             # Order drop points to be visited ccw
-            sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_point().y - self.center.y, task.drop_point().x - self.center.x))
+            sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_point.y - self.center.y, task.drop_point.x - self.center.x))
 
             # Give task regional id and drop points list
-            task = Task(f"{self.id}", self.pick_point, [task.drop_point() for task in sorted_tasks])
+            task = Task(f"{self.id}", self.pick_point, [task.drop_point for task in sorted_tasks])
 
 
             # Assign extended task to regional AMR
@@ -299,7 +299,7 @@ class TaskAllocator:
             r.pick_point = Point(closest_task_to_amr.pick_point.x, closest_task_to_amr.pick_point.y, 0.5 * 1/self.resolution)
         
         elif pick_point == "closest2drop":
-            closest_task_to_drop = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, x.drop_point()))
+            closest_task_to_drop = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, x.drop_point))
 
             r.pick_point = Point(closest_task_to_drop.pick_point.x, closest_task_to_drop.pick_point.y, 0.5 * 1/self.resolution)
 
