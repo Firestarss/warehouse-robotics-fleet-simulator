@@ -75,6 +75,7 @@ class Robot:
         """
         last_task = self.task_list.get_last_task()
         if last_task:
+            # print(f"Last task: {last_task}")
             return last_task.drop_points[-1]
         return self.pos
 

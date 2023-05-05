@@ -157,6 +157,8 @@ class Visualizer:
                 aspectratio=dict(x=1, y=self.wh_map.wh_zone.y_range()/self.wh_map.wh_zone.x_range(), z=self.wh_map.wh_zone.z_range()/self.wh_map.wh_zone.x_range()))
         fig_dict["layout"]["width"] = 1500
         fig_dict["layout"]["margin"] = dict(r=20, l=20, b=20, t=20)
+        fig_dict["layout"]["xaxis"] = {"title":"x-label" , "visible":False, 'showticklabels':False}
+        fig_dict["layout"]["yaxis"] = {"title":"y-label" , "visible":False, 'showticklabels':False}
         return fig_dict
             
     def set_fig_layout(self):
