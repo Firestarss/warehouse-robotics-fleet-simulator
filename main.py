@@ -5,6 +5,7 @@ from path_planning import *
 from task_allocation import *
 from evaluation import *
 from visualization import *
+from task_lists import *
 
 
 from pytictoc import TicToc
@@ -34,8 +35,11 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
     # wh1_map.show_occ_matrix(0)
 
     # Initialize task list for this warehouse
-    rand_task_list = TaskList()
-    rand_task_list.populate_randomly(wh_pick_points, wh1_drop_points, 100)
+    task_list = TaskList()
+    task_list.populate_randomly(wh_pick_points, wh1_drop_points, 100)
+    print(task_list)
+    
+    # task_list = task_lists[i]
     
     print(f"Warehouse Dimensions: {wh_info['warehouse_x']}x {wh_info['warehouse_y']}y {wh_info['warehouse_z']}z")
 
@@ -47,9 +51,9 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
         start_locations = [Point(p.x,p.y,5) for p in wh_pick_points]
         fleet.populate_by_composition(fleet_comp, start_locations)
 
-        task_allocator = TaskAllocator(rand_task_list, fleet, wh_map.resolution,
-                                    region_type="sized_regions_hypercluster",
-                                    allocation_type="closest2drop_handoff")
+        task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
+                                    region_type="homogeneous",
+                                    handoff_type="no_handoff")
 
         task_allocator.cluster_regions()
 
@@ -59,14 +63,14 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
             task_allocator.allocate_tasks(r)
 
 
-            path_planner.plan_next_region()
+            # path_planner.plan_next_region()
 
         # Save parameters relevant to visualization info so any simulation can be chosen for viewing
-        visualizer_info.append([wh_map, rand_task_list, fleet])
+        visualizer_info.append([wh_map, task_list, fleet])
 
-        dist = task_allocator.get_dist()
-        dists.append([fleet_comp[0][1], fleet_comp[1][1], dist])
-    master_dists.append(dists)
+    #     dist = task_allocator.get_dist()
+    #     dists.append([fleet_comp[0][1], fleet_comp[1][1], dist])
+    # master_dists.append(dists)
 
 # print(np.array(master_dists))
 
@@ -82,12 +86,12 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
 
 # plt.show()
 
-wh_map, rand_task_list, fleet = visualizer_info[0]
+wh_map, task_list, fleet = visualizer_info[0]
 
-# task_visualizer = Visualizer(wh_map, rand_task_list, fleet, vis_type="fleet_tasks")
+# task_visualizer = Visualizer(wh_map, task_list, fleet, vis_type="static_with_robots", show_task_labels=False)
 # task_visualizer.show()
 
 # print(fleet.get_robots_as_list("Drone"))
 
-visualizer = Visualizer(wh_map, rand_task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
+visualizer = Visualizer(wh_map, task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
 visualizer.show()

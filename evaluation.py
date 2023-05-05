@@ -61,18 +61,13 @@ class Evaluator:
         self.set_static("aisle_x",  40)
         self.set_static("aisle_y",  30)
 
-        self.set_static("border",   [20,20,10,10])
+        # self.set_static("border",   [20,20,10,10])
+        self.set_static("border",   [40,10,10,10])
 
         self.set_static("drop_points",  [True,False,False,False])
 
     def __repr__(self):
         pass
-
-    def log(self, name, data):
-        if name in self.simulation_data:
-            self.simulation_data[name].append(data)
-        else:
-            self.simulation_data[name] = [data]
     
     def set_static(self, name, value):
         self.simulation_parameters[name] = SimParam(name, value=value)
@@ -85,8 +80,11 @@ class Evaluator:
 
         # Convert list from SimParam objects to a dictionary readable by warehouse generator
         wh_info_list = []
+
         for sim_param_config in sim_param_config_list:
+
             wh_info = {}
+            
             for name, param in sim_param_config.items():
                 wh_info[name] = param.value
 
@@ -96,11 +94,17 @@ class Evaluator:
     
     def recursive_split_wh_info(self, sim_param_config_list):
         expanded_sim_param_config_list = []
+
         for config in sim_param_config_list:
+
             for name, param in config.items():
+
                 if (param.is_dynamic) and (param.name != "n_drone") and (param.name != "n_amr"):
+
                     for val in param.get_as_list():
+
                         config[name] = SimParam(name, value=val)
+
                         expanded_sim_param_config_list.append(copy.copy(config))
 
         # if nothing has been appended, return the original list
@@ -111,9 +115,13 @@ class Evaluator:
         
     def generate_fleet_comp(self):
         test_params = []
+
         for n_drones in self.simulation_parameters["n_drone"].get_as_list():
+
             for n_amrs in self.simulation_parameters["n_amr"].get_as_list():
+
                 if n_drones >= n_amrs:
+
                     test_params.append([
                         ["Drone", int(n_drones)],
                         ["AMR", int(n_amrs)]
