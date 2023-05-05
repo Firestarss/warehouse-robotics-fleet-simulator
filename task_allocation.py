@@ -71,7 +71,7 @@ class Region:
 # ============================================================================================================
 
 class TaskAllocator:
-    def __init__(self, task_list, fleet, resolution, region_type="homogeneous", allocation_type="no_handoff"):
+    def __init__(self, task_list, fleet, resolution, region_type="homogeneous", handoff_type="no_handoff"):
         self.task_list = task_list
         
         self.fleet = fleet
@@ -91,7 +91,7 @@ class TaskAllocator:
             "sized_regions_hypercluster" :  self.sized_regions_hypercluster
         }
 
-        allocation_options = {
+        handoff_options = {
             "no_handoff" :                  self.no_handoff,
             "center_handoff" :              self.center_handoff,
             "closest2AMR_handoff" :         self.closest2AMR_handoff,
@@ -100,7 +100,7 @@ class TaskAllocator:
 
         self.cluster_regions = region_options[region_type]
 
-        self.allocate_tasks = allocation_options[allocation_type]
+        self.allocate_tasks = handoff_options[handoff_type]
 
         self.dist = 0
 

@@ -49,7 +49,7 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
 
         task_allocator = TaskAllocator(rand_task_list, fleet, wh_map.resolution,
                                     region_type="sized_regions_hypercluster",
-                                    allocation_type="closest2drop_handoff")
+                                    handoff_type="closest2drop_handoff")
 
         task_allocator.cluster_regions()
 
