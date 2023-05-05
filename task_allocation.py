@@ -36,8 +36,11 @@ class Region:
         """
 
         if "AMR" in self.fleet.robots.keys():
+            drone_drop_point = self.pick_point
+            drone_drop_point.z = 1.5 * 10
+
             # Drone task is to pick at the task pick point and drop at the region pick point   
-            drone_task = Task(task.task_id, task.pick_point, self.pick_point)
+            drone_task = Task(task.task_id, task.pick_point, drone_drop_point)
             
             # Save second half of task for merging later
             self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_point))
@@ -303,7 +306,7 @@ class TaskAllocator:
             r.pick_point = Point(
                             closest_task_to_amr.pick_point.x,
                             closest_task_to_amr.pick_point.y,
-                            1.5 * 1/self.resolution)
+                            0.5 * 1/self.resolution)
         
         elif pick_point == "closest2drop":
             closest_task_to_drop = min(r.task_list.tasks, key=lambda x: manhattan_dist(x.pick_point, x.drop_point))
@@ -311,7 +314,7 @@ class TaskAllocator:
             r.pick_point = Point(
                             closest_task_to_drop.pick_point.x,
                             closest_task_to_drop.pick_point.y,
-                            1.5 * 1/self.resolution)
+                            0.5 * 1/self.resolution)
 
         # Move drone to this region's fleet
         r.fleet.add(closest_AMR)
