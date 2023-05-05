@@ -36,8 +36,10 @@ class Region:
         """
 
         if "AMR" in self.fleet.robots.keys():
+            drone_drop_point = Point(self.pick_point.x, self.pick_point.y, 1.5 * 10)
+
             # Drone task is to pick at the task pick point and drop at the region pick point   
-            drone_task = Task(task.task_id, task.pick_point, self.pick_point)
+            drone_task = Task(task.task_id, task.pick_point, drone_drop_point)
             
             # Save second half of task for merging later
             self.amr_tasks.append(Task(task.task_id, self.pick_point, task.drop_point))

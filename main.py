@@ -39,7 +39,7 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
     task_list.populate_randomly(wh_pick_points, wh1_drop_points, 100)
     print(task_list)
     
-    # task_list = task_lists[i]
+    task_list = task_lists[i]
     
     print(f"Warehouse Dimensions: {wh_info['warehouse_x']}x {wh_info['warehouse_y']}y {wh_info['warehouse_z']}z")
 
@@ -54,16 +54,20 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
         task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
                                     region_type="homogeneous",
                                     handoff_type="no_handoff")
+        
+        # task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
+        #                             region_type="sized_regions",
+        #                             handoff_type="closest2drop_handoff")
 
         task_allocator.cluster_regions()
 
         path_planner = PathPlanner(wh_map, fleet)
 
         for r in task_allocator.regions:
+            print(f"Allocating task for region {r}...")
             task_allocator.allocate_tasks(r)
-
-
-            # path_planner.plan_next_region()
+            print(f"Planning paths for region {r}...")
+            path_planner.plan_next_region()
 
         # Save parameters relevant to visualization info so any simulation can be chosen for viewing
         visualizer_info.append([wh_map, task_list, fleet])
