@@ -29,8 +29,19 @@ class Robot:
 
     def path_len(self, r_end=None):
         if r_end == None:
-            return len(list(chain(*self.path)))
+            if self.path:
+                return len(list(chain(*self.path)))
+            else:
+                return 0
         else: return len(list(chain(*self.path[:r_end])))
+
+    def path_time(self):
+        return max(self.path_len() - 1,0)
+    
+    def get_last_path_pos(self):
+        if self.path_len() > 0:
+            return self.lookup_pos(self.path_len())
+        return self.pos
 
     def lookup_pos(self, time_step_num):
         """
@@ -47,9 +58,14 @@ class Robot:
         """
         unnested_path = list(chain(*self.path))
         path_len = len(unnested_path)
-        if time_step_num >= path_len:
-            return (unnested_path[-1], path_len-time_step_num-1)
-        return (unnested_path[time_step_num], path_len-time_step_num-1)
+        remaining_path = path_len - time_step_num - 1
+        if path_len == 0:
+            pos = self.pos
+        elif time_step_num >= path_len:
+            pos = unnested_path[-1]
+        else:
+            pos = unnested_path[time_step_num]
+        return (pos, remaining_path)
     
     def lookup_last_assigned_pos(self):
         """
@@ -190,26 +206,29 @@ class Fleet:
         sooner are considered to be that much "closer."
         """
         robot_list = self.get_robots_as_list(robot_type=robot_type)
-        dists = []
+        # dists = []
         bots_dists = []
         time = self.longest_path_len(robot_type)
         for bot in robot_list:
             (bot_pos, r_steps) = bot.lookup_pos_and_remaining_path_len(time)
-            dist = dist = point.dist_manhattan(bot_pos)+r_steps
-            dists.append(dist)
+            dist = point.dist_manhattan(bot_pos)+r_steps
+            # dists.append(dist)
             bots_dists.append([bot, dist])
-        min_dist = min(dists)
-        closest_bots = [bot_dist[0] for bot_dist in bots_dists 
-                        if bot_dist[1]==min_dist]
+
+        # closest_bot = min(bots_dists, key=lambda x: x[1])
+        closest_bots = [bot_dist[0] for bot_dist in sorted(bots_dists, key=lambda x: x[1])]
+        # min_dist = min(dists)
+        # closest_bots = [bot_dist[0] for bot_dist in bots_dists 
+        #                 if bot_dist[1]==min_dist]
         return closest_bots
     
-    def get_robots_with_tasks(self):
+    def get_robots_with_unplanned_tasks(self):
         for robot_type, robots in self.robots.items():
             for robot_id, robot in robots.items():
                 if robot.get_next_task() is not None or robot.get_current_task() is not None:
                     yield robot
 
     def is_fleet_done(self):
-        for _ in self.get_robots_with_tasks():
+        for _ in self.get_robots_with_unplanned_tasks():
             return False
         return True
