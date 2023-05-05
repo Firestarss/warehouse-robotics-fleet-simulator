@@ -190,19 +190,25 @@ class PathPlanner:
 
         # Get robots involved in region and separate into AMR and Drone
         to_plan = list(self.fleet.get_robots_with_unplanned_tasks())
-        current_amr = [robot for robot in to_plan if robot.robot_id.startswith("A")][0]
+        current_amr = [robot for robot in to_plan if robot.robot_id.startswith("A")]
         current_drones = [robot for robot in to_plan if robot.robot_id.startswith("D")]
+        use_amr = False
+
+        if len(current_amr):
+            current_amr = current_amr[0]
+            use_amr = True
 
         # Plan AMR path to pick location
-        amr_to_pick_path = self.calc_ca_star_path(
-            current_amr.get_last_path_pos(),
-            current_amr.get_next_task().pick_point,
-            current_amr.path_time(),
-            current_amr.path_time(),
-            current_amr.robot_id)
+        if use_amr:
+            amr_to_pick_path = self.calc_ca_star_path(
+                current_amr.get_last_path_pos(),
+                current_amr.get_next_task().pick_point,
+                current_amr.path_time(),
+                current_amr.path_time(),
+                current_amr.robot_id)
         
-        current_amr.add_path_segment(amr_to_pick_path)
-        current_amr.get_next_task().picked = current_amr.path_time()
+            current_amr.add_path_segment(amr_to_pick_path)
+            current_amr.get_next_task().picked = current_amr.path_time()
 
         for drone in current_drones:
             # Plan Drone path to pick location
@@ -217,18 +223,19 @@ class PathPlanner:
             drone.get_next_task().picked = drone.path_time()
 
             # Plan Drone path to wait at pick location
-            estimated_dist = diag_dist(drone.get_last_path_pos(),
-                                            current_amr.get_last_path_pos())
-            estimated_resume_time = current_amr.path_time() - int(estimated_dist)
+            if use_amr:
+                estimated_dist = diag_dist(drone.get_last_path_pos(),
+                                                current_amr.get_last_path_pos())
+                estimated_resume_time = current_amr.path_time() - int(estimated_dist)
 
-            drone_wait_path = self.calc_ca_star_path(
-                drone.get_last_path_pos(),
-                drone.get_last_path_pos(),
-                drone.path_time(),
-                estimated_resume_time,
-                "W")
-            
-            drone.add_path_segment(drone_wait_path)
+                drone_wait_path = self.calc_ca_star_path(
+                    drone.get_last_path_pos(),
+                    drone.get_last_path_pos(),
+                    drone.path_time(),
+                    estimated_resume_time,
+                    "W")
+                
+                drone.add_path_segment(drone_wait_path)
 
             # Plan Drone path to drop/handoff location
             drone_to_drop_path = self.calc_ca_star_path(
@@ -243,27 +250,29 @@ class PathPlanner:
 
         
         # Plan how long AMR waits for deliveries
-        leave_time = max([drone.path_time() for drone in current_drones])
-        amr_wait_path = amr_to_pick_path = self.calc_ca_star_path(
-            current_amr.get_last_path_pos(),
-            current_amr.get_last_path_pos(),
-            current_amr.path_time(),
-            leave_time,
-            current_amr.robot_id)
-        
-        current_amr.add_path_segment(amr_wait_path)
-        
-        # Plan AMR path to all drop points
-        for drop in current_amr.get_current_task().drop_points:
-            amr_next_drop_path = self.calc_ca_star_path(
+        if use_amr:
+            leave_time = max([drone.path_time() for drone in current_drones])
+            amr_wait_path = amr_to_pick_path = self.calc_ca_star_path(
                 current_amr.get_last_path_pos(),
-                drop,
+                current_amr.get_last_path_pos(),
                 current_amr.path_time(),
-                current_amr.path_time(),
+                leave_time,
                 current_amr.robot_id)
             
-            current_amr.add_path_segment(amr_next_drop_path)
-        current_amr.get_current_task().done = current_amr.path_time()
+            current_amr.add_path_segment(amr_wait_path)
+        
+        # Plan AMR path to all drop points
+        if use_amr:
+            for drop in current_amr.get_current_task().drop_points:
+                amr_next_drop_path = self.calc_ca_star_path(
+                    current_amr.get_last_path_pos(),
+                    drop,
+                    current_amr.path_time(),
+                    current_amr.path_time(),
+                    current_amr.robot_id)
+                
+                current_amr.add_path_segment(amr_next_drop_path)
+            current_amr.get_current_task().done = current_amr.path_time()
 
         # for path in current_amr.path:
         #     print(path)
