@@ -8,7 +8,7 @@ import math
 
 class Node:
     """
-    A node class for A* Pathfinding
+    A node class for CA* Pathfinding
     """
 
     def __init__(self, position=None, parent=None):
@@ -177,36 +177,6 @@ class PathPlanner:
 
         return None
 
-
-    def temp_plan_all_paths(self, alg = "a*"):
-        failed_cells = []
-        algorithms = {
-            "a*": self.calc_a_star_path,
-            "a*_no_col": self.calc_a_star_path_without_collisions,
-            "manhattan": self.calc_manhattan_path
-        }
-        path_planning_alg = algorithms[alg]
-
-        robots_with_tasks = self.fleet.get_robots_with_tasks()
-        for robot in robots_with_tasks:
-            robot.get_next_task().started = True
-            for task in robot.task_list.tasks:
-                debug_info = [task.task_id, task.assigned_robot.robot_id]
-                path_segment = path_planning_alg(task.pick_point, task.drop_point, debug_info = debug_info)
-                if path_segment is None:
-                    failed_cells += [self.map.point_to_cell(task.pick_point), self.map.point_to_cell(task.drop_point)]
-                robot.add_path_segment(path_segment)
-                task.picked = True
-                task.done = True
-                next_task = robot.get_next_task()
-                if next_task:
-                    path_segment = path_planning_alg(task.drop_point, next_task.pick_point, debug_info = debug_info)
-                    if path_segment is None:
-                        failed_cells += [self.map.point_to_cell(task.drop_point), self.map.point_to_cell(next_task.pick_point)]
-                    robot.add_path_segment(path_segment)
-                    next_task.started = True
-
-        return failed_cells
     
     def plan_next_region(self):
         """
@@ -217,8 +187,6 @@ class PathPlanner:
             - Plan drone to drop point
         3. Plan AMR to all drop points
         """
-
-        print("="*25, "Planning Region", "="*25)
 
         # Get robots involved in region and separate into AMR and Drone
         to_plan = list(self.fleet.get_robots_with_unplanned_tasks())
@@ -249,8 +217,8 @@ class PathPlanner:
             drone.get_next_task().picked = drone.path_time()
 
             # Plan Drone path to wait at pick location
-            estimated_dist = diag_dist(drone.lookup_last_assigned_pos(),
-                                            current_amr.lookup_last_assigned_pos())
+            estimated_dist = diag_dist(drone.get_last_path_pos(),
+                                            current_amr.get_last_path_pos())
             estimated_resume_time = current_amr.path_time() - int(estimated_dist)
 
             drone_wait_path = self.calc_ca_star_path(
@@ -277,8 +245,8 @@ class PathPlanner:
         # Plan how long AMR waits for deliveries
         leave_time = max([drone.path_time() for drone in current_drones])
         amr_wait_path = amr_to_pick_path = self.calc_ca_star_path(
-            current_amr.lookup_last_assigned_pos(),
-            current_amr.lookup_last_assigned_pos(),
+            current_amr.get_last_path_pos(),
+            current_amr.get_last_path_pos(),
             current_amr.path_time(),
             leave_time,
             current_amr.robot_id)
@@ -288,7 +256,7 @@ class PathPlanner:
         # Plan AMR path to all drop points
         for drop in current_amr.get_current_task().drop_points:
             amr_next_drop_path = self.calc_ca_star_path(
-                current_amr.lookup_last_assigned_pos(),
+                current_amr.get_last_path_pos(),
                 drop,
                 current_amr.path_time(),
                 current_amr.path_time(),
@@ -296,3 +264,6 @@ class PathPlanner:
             
             current_amr.add_path_segment(amr_next_drop_path)
         current_amr.get_current_task().done = current_amr.path_time()
+
+        # for path in current_amr.path:
+        #     print(path)
