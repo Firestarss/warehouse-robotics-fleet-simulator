@@ -107,7 +107,7 @@ allocator.populate_fleet(allocation_type="regional_base")
 path_planner = PathPlanner(wh1_map, fleet)
 path_planner.temp_plan_all_paths(alg="manhattan")
 
-visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="static_with_robots", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
+visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
 visualizer.show()
 
 
