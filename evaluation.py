@@ -61,8 +61,8 @@ class Evaluator:
         self.set_static("aisle_x",  40)
         self.set_static("aisle_y",  30)
 
-        # self.set_static("border",   [20,20,10,10])
-        self.set_static("border",   [40,10,10,10])
+        self.set_static("border",   [20,20,10,10])
+        # self.set_static("border",   [40,10,10,10])
 
         self.set_static("drop_points",  [True,False,False,False])
 
