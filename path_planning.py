@@ -211,47 +211,48 @@ class PathPlanner:
             current_amr.get_next_task().picked = current_amr.path_time()
 
         for drone in current_drones:
-            # Plan Drone path to pick location
-            drone_to_pick_path = self.calc_ca_star_path(
-                drone.get_last_path_pos(),
-                drone.get_next_task().pick_point,
-                drone.path_time(),
-                drone.path_time(),
-                drone.robot_id)
-            
-            drone.add_path_segment(drone_to_pick_path)
-            drone.get_next_task().picked = drone.path_time()
-
-            # Plan Drone path to wait at pick location
-            if use_amr:
-                estimated_dist = diag_dist(drone.get_last_path_pos(),
-                                                current_amr.get_last_path_pos())
-                estimated_resume_time = current_amr.path_time() - int(estimated_dist)
-
-                drone_wait_path = self.calc_ca_star_path(
+            while drone.get_next_task():
+                # Plan Drone path to pick location
+                drone_to_pick_path = self.calc_ca_star_path(
                     drone.get_last_path_pos(),
-                    drone.get_last_path_pos(),
+                    drone.get_next_task().pick_point,
                     drone.path_time(),
-                    estimated_resume_time,
-                    "W")
+                    drone.path_time(),
+                    drone.robot_id)
                 
-                drone.add_path_segment(drone_wait_path)
+                drone.add_path_segment(drone_to_pick_path)
+                drone.get_next_task().picked = drone.path_time()
 
-            if use_amr:
-                drop_time = current_amr.path_time()
-            else:
-                drop_time = drone.path_time()
+                # Plan Drone path to wait at pick location
+                if use_amr:
+                    estimated_dist = diag_dist(drone.get_last_path_pos(),
+                                                    current_amr.get_last_path_pos())
+                    estimated_resume_time = current_amr.path_time() - int(estimated_dist)
 
-            # Plan Drone path to drop/handoff location
-            drone_to_drop_path = self.calc_ca_star_path(
-                drone.get_last_path_pos(),
-                drone.get_current_task().drop_point,
-                drone.path_time(),
-                drop_time,
-                drone.robot_id)
-            
-            drone.add_path_segment(drone_to_drop_path)
-            drone.get_current_task().done = drone.path_time()
+                    drone_wait_path = self.calc_ca_star_path(
+                        drone.get_last_path_pos(),
+                        drone.get_last_path_pos(),
+                        drone.path_time(),
+                        estimated_resume_time,
+                        "W")
+                    
+                    drone.add_path_segment(drone_wait_path)
+
+                if use_amr:
+                    drop_time = current_amr.path_time()
+                else:
+                    drop_time = drone.path_time()
+
+                # Plan Drone path to drop/handoff location
+                drone_to_drop_path = self.calc_ca_star_path(
+                    drone.get_last_path_pos(),
+                    drone.get_current_task().drop_point,
+                    drone.path_time(),
+                    drop_time,
+                    drone.robot_id)
+                
+                drone.add_path_segment(drone_to_drop_path)
+                drone.get_current_task().done = drone.path_time()
 
         
         # Plan how long AMR waits for deliveries
