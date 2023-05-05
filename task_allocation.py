@@ -99,6 +99,8 @@ class TaskAllocator:
 
         self.allocate_tasks = allocation_options[allocation_type]
 
+        self.dist = 0
+
     def __repr__(self):
         return (f"TaskAllocator(task_list={self.task_list}\n" + 
                 f"    fleet={self.fleet},\n" +
@@ -382,9 +384,18 @@ class TaskAllocator:
         # If AMR in this region, merge tasks and assign
         r.merge_amr_tasks()
 
-        # print(f"{r.id} task assignment distance optimized: {dist_prior} -> {dist_post} (ft)")        
+        # print(f"{r.id} task assignment distance optimized: {dist_prior} -> {dist_post} (ft)")
+        self.dist += dist_post
 
 # Task Allocation functions
+# ============================================================================================================
+
+# ============================================================================================================
+# TestLogging functions
+    def get_dist(self):
+        return self.dist
+
+# TestLogging functions
 # ============================================================================================================
 
 # ============================================================================================================
