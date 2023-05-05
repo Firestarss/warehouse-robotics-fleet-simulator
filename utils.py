@@ -122,7 +122,7 @@ class Task:
         return self.drop_points[0]
     
     def location(self, time=None):
-        if time == None or time == 0 or assigned_robot == None:
+        if time == None or time == 0 or self.assigned_robot == None:
             return self.pick_point
         
 
