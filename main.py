@@ -39,7 +39,7 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
     task_list.populate_randomly(wh_pick_points, wh1_drop_points, 100)
     print(task_list)
     
-    # task_list = task_lists[i]
+    task_list = task_lists[i]
     
     print(f"Warehouse Dimensions: {wh_info['warehouse_x']}x {wh_info['warehouse_y']}y {wh_info['warehouse_z']}z")
 
