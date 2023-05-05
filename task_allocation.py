@@ -34,6 +34,7 @@ class Region:
         Return the drone task for assignment,
         save AMR tasks for easy combination in merge_amr_tasks()
         """
+
         if "AMR" in self.fleet.robots.keys():
             # Drone task is to pick at the task pick point and drop at the region pick point   
             drone_task = Task(task.task_id, task.pick_point, self.pick_point)
@@ -53,12 +54,14 @@ class Region:
         add all drop points to a single task,
         and assign to AMR
         """
+
         if "AMR" in self.fleet.robots.keys():
             # Order drop points to be visited ccw
             sorted_tasks = sorted(self.amr_tasks, key=lambda task: math.atan2(task.drop_point().y - self.center.y, task.drop_point().x - self.center.x))
 
             # Give task regional id and drop points list
             task = Task(f"{self.id}", self.pick_point, [task.drop_point() for task in sorted_tasks])
+
 
             # Assign extended task to regional AMR
             self.fleet.get_robots_as_list(robot_type="AMR")[0].add_task(task)

@@ -3,8 +3,9 @@ from warehouse_map import *
 from robot_fleet import *
 from path_planning import *
 from task_allocation import *
-from visualization2 import *
 from evaluation import *
+from visualization import *
+
 
 from pytictoc import TicToc
 import numpy as np
@@ -87,15 +88,5 @@ wh_map, rand_task_list, fleet = visualizer_info[0]
 
 # print(fleet.get_robots_as_list("Drone"))
 
-# path_planner = PathPlanner(wh1_map, fleet)
-# path_planner.temp_plan_all_paths()
-
-# task_visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="fleet_tasks")
-# task_visualizer.show()
-
-
-# path_visualizer = Visualizer(wh_map, rand_task_list, fleet, vis_type="black_tasks_traces_on", show_t=True)
-# path_visualizer.show()
-
-# animation_visualizer = Visualizer(wh_map, rand_task_list, fleet, vis_type="color_tasks_traces_off", show_t=True)
-# animation_visualizer.animation()
+visualizer = Visualizer(wh1_map, rand_task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
+visualizer.show()

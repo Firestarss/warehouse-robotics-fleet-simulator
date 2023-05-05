@@ -170,6 +170,12 @@ class Fleet:
             return robot_list
         else:
             return list(self.robots[robot_type].values())
+        
+    def get_fleet_tasks(self, time=None, status=None, robot_type="All"):
+        robots = self.get_robots_as_list(robot_type)
+        if time == None:
+            nested_tasks = [robot.task_list.tasks for robot in robots]
+            return list(chain(*nested_tasks))
 
     def longest_path_len(self, robot_type="All"):
         robot_list = self.get_robots_as_list(robot_type)
