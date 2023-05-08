@@ -63,7 +63,8 @@ class Visualizer:
                 "animated_with_dynamic_tasks" - animates robots and shows the 
                     live location of the tasks with the robots
             task_plot_mode (str, optional): Defaults to "no_lines".
-                "detailed" - 3 traces per task, pick and drop sparately in color
+                "detailed" - 3 traces per task, pick and drop separately in
+                    color
                 "simple" - 1 trace per task, grey tasks with line connecting
                 "no_lines" - 1 trace total, grey tasks with no line connecting
                 "off" - skips plotting tasks
@@ -196,14 +197,14 @@ class Visualizer:
                 mode = "markers+text"
             else:
                 mode = "markers"
-            xs = [task.location(time).x for task in tasks]
-            xs.extend([task.drop_point.x for task in tasks])
-            ys = [task.location(time).y for task in tasks]
-            ys.extend([task.drop_point.y for task in tasks])
-            zs = [task.location(time).z for task in tasks]
-            zs.extend([task.drop_point.z for task in tasks])
-            labels = [task.task_id+"-P" for task in tasks]
-            labels.extend([task.task_id+"-D" for task in tasks])
+            xs =  [task.location(time).x for task in tasks]
+            xs.extend(list(chain(*[task.drop_points_xs() for task in tasks])))
+            ys =  [task.location(time).y for task in tasks]
+            ys.extend(list(chain(*[task.drop_points_ys() for task in tasks])))
+            zs =  [task.location(time).z for task in tasks]
+            zs.extend(list(chain(*[task.drop_points_zs() for task in tasks])))
+            labels =  [task.task_id+"-P" for task in tasks]
+            # labels.extend([task.task_id+"-D" for task in tasks])
             return [go.Scatter3d(
                 x=xs, 
                 y=ys, 
@@ -222,9 +223,9 @@ class Visualizer:
                 mode = "lines+markers"
             for i in range(len(tasks)):
                 task_traces.append(go.Scatter3d(
-                    x=[tasks[i].pick_point.x,tasks[i].drop_point.x], 
-                    y=[tasks[i].pick_point.y,tasks[i].drop_point.y], 
-                    z=[tasks[i].pick_point.z,tasks[i].drop_point.z], 
+                    x=[tasks[i].pick_point.x,*tasks[i].drop_points_xs()], 
+                    y=[tasks[i].pick_point.y,*tasks[i].drop_points_ys()], 
+                    z=[tasks[i].pick_point.z,*tasks[i].drop_points_zs()], 
                     mode=mode,
                     marker=dict(color=color, size=5,
                                 symbol='square'),
@@ -239,11 +240,11 @@ class Visualizer:
                     task_num = int(tasks[i].task_id[1:])
                     marker_size = np.linspace(10,5, len(tasks))
                     pick_str = tasks[i].pick_point.as_str()
-                    drop_str = tasks[i].drop_point.as_str()
+                    drop_str = str([point.as_str() for point in tasks[i].drop_points])
                     task_traces.append(go.Scatter3d(
-                        x=[tasks[i].pick_point.x,tasks[i].drop_point.x], 
-                        y=[tasks[i].pick_point.y,tasks[i].drop_point.y], 
-                        z=[tasks[i].pick_point.z,tasks[i].drop_point.z], 
+                        x=[tasks[i].pick_point.x,*tasks[i].drop_points_xs()], 
+                        y=[tasks[i].pick_point.y,*tasks[i].drop_points_ys()], 
+                        z=[tasks[i].pick_point.z,*tasks[i].drop_points_zs()], 
                         mode='lines',
                         marker=dict(color=self.color(task_num)), 
                         name=f"Task {tasks[i].task_id}"))
@@ -256,9 +257,9 @@ class Visualizer:
                         name=f"Pick {tasks[i].task_id}: {pick_str}",
                         text=[tasks[i].task_id]))
                     task_traces.append(go.Scatter3d(
-                        x=[tasks[i].drop_point.x], 
-                        y=[tasks[i].drop_point.y], 
-                        z=[tasks[i].drop_point.z], 
+                        x=tasks[i].drop_points_xs(), 
+                        y=tasks[i].drop_points_ys(), 
+                        z=tasks[i].drop_points_zs(), 
                         mode='markers',
                         marker=dict(color=self.color(task_num), size=marker_size[i],
                                     symbol='square'), 

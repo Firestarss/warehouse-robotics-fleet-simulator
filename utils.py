@@ -125,6 +125,15 @@ class Task:
         if time == None or time == 0 or self.assigned_robot == None:
             return self.pick_point
         
+    def drop_points_xs(self):
+        return [point.x for point in self.drop_points]
+    
+    def drop_points_ys(self):
+        return [point.y for point in self.drop_points]
+    
+    def drop_points_zs(self):
+        return [point.z for point in self.drop_points]
+        
 
 class TaskList:
     def __init__(self, tasks=None):

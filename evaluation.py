@@ -20,7 +20,9 @@ class SimParam:
     def get_as_list(self):
         if self.value:
             return [self.value]
-        return self.sweep
+        if self.sweep:
+            return self.sweep
+        return [0]
     
     def __repr__(self):
         if self.is_dynamic:

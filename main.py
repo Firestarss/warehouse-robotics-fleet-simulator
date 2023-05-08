@@ -21,8 +21,8 @@ evaluator = Evaluator()
 # evaluator.set_variable("warehouse_y",  min=2, max=10, step=2)
 # evaluator.set_variable("warehouse_z",  min=50, max=100, step=10)
 
-evaluator.set_static("n_drone", 20)
-evaluator.set_static("n_amr", 5)
+evaluator.set_static("n_drone", 10)
+evaluator.set_static("n_amr", 2)
 # evaluator.set_variable("n_drone",  min=10, max=100, step=10)
 # evaluator.set_variable("n_amr", min=1,  max=15,  step=5)
 
@@ -36,7 +36,7 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
 
     # Initialize task list for this warehouse
     task_list = TaskList()
-    task_list.populate_randomly(wh_pick_points, wh1_drop_points, 100)
+    # task_list.populate_randomly(wh_pick_points, wh1_drop_points, 10)
     print(task_list)
     
     task_list = task_lists[i]
@@ -51,23 +51,24 @@ for i, wh_info in enumerate(evaluator.generate_wh_info()):
         start_locations = [Point(p.x,p.y,5) for p in wh_pick_points]
         fleet.populate_by_composition(fleet_comp, start_locations)
 
-        task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
-                                    region_type="homogeneous",
-                                    handoff_type="no_handoff")
-        
         # task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
-        #                             region_type="sized_regions",
-        #                             handoff_type="closest2drop_handoff")
+        #                             region_type="homogeneous",
+        #                             handoff_type="no_handoff")
+        
+        task_allocator = TaskAllocator(task_list, fleet, wh_map.resolution,
+                                    region_type="sized_regions",
+                                    handoff_type="closest2drop_handoff")
 
         task_allocator.cluster_regions()
 
         path_planner = PathPlanner(wh_map, fleet)
 
-        for r in task_allocator.regions:
-            print(f"Allocating task for region {r}...")
+        for i, r in enumerate(task_allocator.regions):
+            print("="*30, f"Planning region {i}/{len(task_allocator.regions)}")
+            # print(f"Allocating task for region {r}...")
             task_allocator.allocate_tasks(r)
-            print(f"Planning paths for region {r}...")
-            path_planner.plan_next_region()
+            # print(f"Planning paths for region {r}...")
+            # path_planner.plan_next_region()
 
         # Save parameters relevant to visualization info so any simulation can be chosen for viewing
         visualizer_info.append([wh_map, task_list, fleet])
@@ -97,5 +98,7 @@ wh_map, task_list, fleet = visualizer_info[0]
 
 # print(fleet.get_robots_as_list("Drone"))
 
-visualizer = Visualizer(wh_map, task_list, fleet, vis_type="animated_with_static_tasks", task_plot_mode="simple", split_tasks=True, show_task_labels=False)
+# print(fleet)
+
+visualizer = Visualizer(wh_map, task_list, fleet, vis_type="static_no_robots", task_plot_mode="detailed", split_tasks=True, show_task_labels=False)
 visualizer.show()

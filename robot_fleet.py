@@ -166,6 +166,8 @@ class Fleet:
                 self.robots["AMR"] = bots
 
     def get_robots_as_list(self, robot_type="All"):
+        if robot_type != "All" and robot_type not in self.robots:
+            return []
         if robot_type == "All":
             robot_list = []
             for robot_type in self.robots:
